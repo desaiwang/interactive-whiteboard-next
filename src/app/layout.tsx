@@ -25,12 +25,16 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const isSignedIn = await AuthGetCurrentUserServer();
+  console.log("isSignedIn", isSignedIn);
+  console.log("!!isSignedin", !!isSignedIn);
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <NavBar isSignedIn={await !!AuthGetCurrentUserServer()}></NavBar>
+        <NavBar isSignedIn={!!isSignedIn}></NavBar>
         <Auth>{children}</Auth>
       </body>
     </html>

@@ -23,7 +23,9 @@ export async function AuthGetCurrentUserServer() {
       operation: (contextSpec) => getCurrentUser(contextSpec),
     });
     return currentUser;
-  } catch (error) {
-    console.error(error);
+  } catch {
+    //if can't find user (guest login/ public api)
+    //console.error(error);
+    return null;
   }
 }

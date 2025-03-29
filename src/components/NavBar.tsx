@@ -9,15 +9,19 @@ import { Hub } from "aws-amplify/utils";
 
 export default function NavBar({ isSignedIn }: { isSignedIn: boolean }) {
   const [isAuthenticated, setIsAuthenticated] = React.useState(isSignedIn);
+  console.log("isAuthenticated inside NavBar.tsx", isAuthenticated);
+
   const router = useRouter();
   useEffect(() => {
     const hubListenerCancel = Hub.listen("auth", (data) => {
       switch (data.payload.event) {
         case "signedIn":
+          console.log("signedIn", data.payload.event);
           setIsAuthenticated(true);
           router.push("/");
           break;
         case "signedOut":
+          console.log("signedIn", data.payload.event);
           setIsAuthenticated(false);
           router.push("/");
           break;
