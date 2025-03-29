@@ -7,7 +7,7 @@ import { createComment, deleteComment } from "@/app/_action/actions";
 export default async function PostDetail({
   params: rawParams,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const params = await rawParams;
   if (!params.id) return null;
