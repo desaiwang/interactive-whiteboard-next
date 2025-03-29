@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useTransition } from "react";
 import Link from "next/link";
 import { Button, Divider, Flex } from "@aws-amplify/ui-react";
 import { signOut } from "@aws-amplify/auth";
@@ -9,21 +9,22 @@ import { Hub } from "aws-amplify/utils";
 
 export default function NavBar({ isSignedIn }: { isSignedIn: boolean }) {
   const [isAuthenticated, setIsAuthenticated] = React.useState(isSignedIn);
-  console.log("isAuthenticated inside NavBar.tsx", isAuthenticated);
+  const [isPending, startTransition] = useTransition();
+  //console.log("isAuthenticated inside NavBar.tsx", isAuthenticated);
 
   const router = useRouter();
   useEffect(() => {
     const hubListenerCancel = Hub.listen("auth", (data) => {
       switch (data.payload.event) {
         case "signedIn":
-          console.log("signedIn", data.payload.event);
           setIsAuthenticated(true);
-          router.push("/");
+          startTransition(() => router.push("/"));
+          startTransition(() => router.refresh());
           break;
         case "signedOut":
-          console.log("signedIn", data.payload.event);
           setIsAuthenticated(false);
-          router.push("/");
+          startTransition(() => router.push("/"));
+          startTransition(() => router.refresh());
           break;
       }
     });
