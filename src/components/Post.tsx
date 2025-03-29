@@ -1,14 +1,14 @@
 "use client";
 import React from "react";
 import { useRouter } from "next/navigation";
-// import { Schema } from "@/../amplify/data/resource";
+import { Schema } from "@/../amplify/data/resource";
 
 export default function Post({
   post,
   onDelete,
   isSignedIn,
 }: {
-  post: { id: string; content?: string };
+  post: Pick<Schema["Post"]["type"], "content" | "id">;
   onDelete: (identifyUser: string) => void;
   isSignedIn: boolean;
 }) {

@@ -2,6 +2,7 @@ import { cookiesClient } from "@/utils/amplify-utils";
 import Post from "@/components/Post";
 import { onDeletePost } from "./_action/actions";
 import { AuthGetCurrentUserServer } from "@/utils/amplify-utils";
+// import { Schema } from "@/../amplify/data/resource";
 
 export default async function Home() {
   const user = await AuthGetCurrentUserServer();
