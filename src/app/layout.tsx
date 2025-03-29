@@ -4,7 +4,6 @@ import "./globals.css";
 import Auth from "@/components/auth/Auth";
 import NavBar from "@/components/NavBar";
 import { AuthGetCurrentUserServer } from "@/utils/amplify-utils";
-import { userAgent } from "next/server";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

@@ -2,14 +2,14 @@
 
 import React, { useEffect, useTransition } from "react";
 import Link from "next/link";
-import { Button, Divider, Flex } from "@aws-amplify/ui-react";
+import { Button } from "@aws-amplify/ui-react";
 import { signOut } from "@aws-amplify/auth";
 import { useRouter } from "next/navigation";
 import { Hub } from "aws-amplify/utils";
 
 export default function NavBar({ isSignedIn }: { isSignedIn: boolean }) {
   const [isAuthenticated, setIsAuthenticated] = React.useState(isSignedIn);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   //console.log("isAuthenticated inside NavBar.tsx", isAuthenticated);
 
   const router = useRouter();
