@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Schema } from "@/../amplify/data/resource";
+// import { Schema } from "@/../amplify/data/resource";
 
 export default function Post({
   post,
