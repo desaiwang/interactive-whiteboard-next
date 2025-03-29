@@ -16,14 +16,20 @@ const schema = a.schema({
         .authorization((allow) => [allow.owner().to(["read", "delete"])]),
       comments: a.hasMany("Comment", "id"),
     })
-    .authorization((allow) => [allow.guest().to(["read"]), allow.owner()]),
+    .authorization((allow) => [
+      allow.publicApiKey().to(["read"]),
+      allow.owner(),
+    ]),
   Comment: a
     .model({
       id: a.string().required(),
       content: a.string().required(),
       post: a.belongsTo("Post", "id"),
     })
-    .authorization((allow) => [allow.guest().to(["read"]), allow.owner()]),
+    .authorization((allow) => [
+      allow.publicApiKey().to(["read"]),
+      allow.owner(),
+    ]),
 });
 
 export type Schema = ClientSchema<typeof schema>;

@@ -15,6 +15,7 @@ export default function NavBar({ isSignedIn }: { isSignedIn: boolean }) {
       switch (data.payload.event) {
         case "signedIn":
           setIsAuthenticated(true);
+          router.push("/");
           break;
         case "signedOut":
           setIsAuthenticated(false);
