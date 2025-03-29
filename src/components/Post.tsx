@@ -19,7 +19,7 @@ export default function Post({
 
   return (
     <div className="border bg-gray-100 w-full p-4 rounded flex justify-between">
-      <button onClick={onDetail}>
+      <button onClick={onDetail} className="cursor-pointer">
         <div className="flex gap-2">
           <div>Title: </div>
           <div>{post.content}</div>

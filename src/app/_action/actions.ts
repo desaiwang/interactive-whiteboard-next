@@ -3,6 +3,7 @@
 import { cookiesClient } from "@/utils/amplify-utils";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { Schema } from "../../../amplify/data/resource";
 
 export async function onDeletePost(id: string) {
   const { data, errors } = await cookiesClient.models.Post.delete(
@@ -15,7 +16,7 @@ export async function onDeletePost(id: string) {
 }
 
 export async function createPost(formData: FormData) {
-  console.log("formData", formData);
+  console.log("post formData", formData);
   const { data, errors } = await cookiesClient.models.Post.create(
     {
       content: formData.get("content")?.toString() || "",
@@ -28,4 +29,33 @@ export async function createPost(formData: FormData) {
   }
 
   redirect("/");
+}
+
+export async function createComment(content: string, postId: string) {
+  // Validation of data coming in
+  if (content.trim().length === 0) return;
+
+  const { data, errors } = await cookiesClient.models.Comment.create(
+    {
+      content,
+      postId,
+    },
+    { authMode: "userPool" }
+  );
+
+  console.log("create comment", data);
+  if (errors) {
+    console.error("Error creating comment", errors);
+  }
+
+  revalidatePath(`/posts/${postId}`);
+}
+
+export async function deleteComment(id: string) {
+  const { data, errors } = await cookiesClient.models.Comment.delete(
+    { id },
+    { authMode: "userPool" }
+  );
+
+  console.log("delete comment", data, errors);
 }

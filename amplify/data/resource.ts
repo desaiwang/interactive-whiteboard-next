@@ -17,17 +17,19 @@ const schema = a.schema({
           allow.owner().to(["read", "delete"]),
           allow.publicApiKey().to(["read"]),
         ]),
-      comments: a.hasMany("Comment", "id"),
+      comments: a.hasMany("Comment", "postId"),
     })
     .authorization((allow) => [
       allow.publicApiKey().to(["read"]),
       allow.owner(),
     ]),
+
   Comment: a
     .model({
       id: a.string().required(),
       content: a.string().required(),
-      post: a.belongsTo("Post", "id"),
+      postId: a.string().required(),
+      post: a.belongsTo("Post", "postId"),
     })
     .authorization((allow) => [
       allow.publicApiKey().to(["read"]),
