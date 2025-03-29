@@ -4,6 +4,7 @@ import "./globals.css";
 import Auth from "@/components/auth/Auth";
 import NavBar from "@/components/NavBar";
 import { AuthGetCurrentUserServer } from "@/utils/amplify-utils";
+import { userAgent } from "next/server";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,16 +26,14 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const isSignedIn = await AuthGetCurrentUserServer();
-  console.log("isSignedIn", isSignedIn);
-  console.log("!!isSignedin", !!isSignedIn);
+  const user = await AuthGetCurrentUserServer();
 
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <NavBar isSignedIn={!!isSignedIn}></NavBar>
+        <NavBar isSignedIn={!!user}></NavBar>
         <Auth>{children}</Auth>
       </body>
     </html>

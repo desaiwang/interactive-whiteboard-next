@@ -10,10 +10,13 @@ const schema = a.schema({
   Post: a
     .model({
       id: a.string().required(),
-      content: a.string(),
+      content: a.string().default("unnamed"),
       owner: a
         .string()
-        .authorization((allow) => [allow.owner().to(["read", "delete"])]),
+        .authorization((allow) => [
+          allow.owner().to(["read", "delete"]),
+          allow.publicApiKey().to(["read"]),
+        ]),
       comments: a.hasMany("Comment", "id"),
     })
     .authorization((allow) => [

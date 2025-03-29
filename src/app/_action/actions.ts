@@ -2,6 +2,17 @@
 
 import { cookiesClient } from "@/utils/amplify-utils";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+
+export async function onDeletePost(id: string) {
+  const { data, errors } = await cookiesClient.models.Post.delete(
+    { id },
+    { authMode: "userPool" }
+  );
+
+  console.log("delete post", data, errors);
+  revalidatePath("/");
+}
 
 export async function createPost(formData: FormData) {
   console.log("formData", formData);
