@@ -38,7 +38,7 @@ const schema = a.schema({
 });
 
 //TODO: bring back when needed
-// export type Schema = ClientSchema<typeof schema>;
+export type Schema = ClientSchema<typeof schema>;
 
 export const data = defineData({
   schema,
