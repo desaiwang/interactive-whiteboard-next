@@ -3,7 +3,6 @@
 import { cookiesClient } from "@/utils/amplify-utils";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { Schema } from "../../../amplify/data/resource";
 
 export async function onDeletePost(id: string) {
   const { data, errors } = await cookiesClient.models.Post.delete(

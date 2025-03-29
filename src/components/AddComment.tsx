@@ -1,6 +1,5 @@
 "use client";
 import React, { useState } from "react";
-import { Schema } from "@/../amplify/data/resource";
 
 export default function AddComment({
   addComment,

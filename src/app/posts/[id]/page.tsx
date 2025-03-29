@@ -1,6 +1,5 @@
 import { cookiesClient, AuthGetCurrentUserServer } from "@/utils/amplify-utils";
 import { revalidatePath } from "next/cache";
-import { Schema } from "../../../../amplify/data/resource";
 import React from "react";
 import AddComment from "@/components/AddComment";
 import { createComment, deleteComment } from "@/app/_action/actions";
