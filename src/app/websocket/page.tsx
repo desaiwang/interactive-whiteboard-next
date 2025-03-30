@@ -53,7 +53,7 @@ export default function App() {
       <button onClick={publishEvent}>Publish Event</button>
       <ul>
         {myEvents.map((data) => (
-          <li key={data.id}>{JSON.stringify(data.event)}</li>
+          <li key={crypto.randomUUID()}>{JSON.stringify(data.event)}</li>
         ))}
       </ul>
     </>

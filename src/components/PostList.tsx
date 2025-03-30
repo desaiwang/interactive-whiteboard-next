@@ -6,6 +6,7 @@ import { Schema } from "@/../amplify/data/resource";
 import { Amplify } from "aws-amplify";
 import outputs from "../../amplify_outputs.json";
 import Post from "@/components/Post";
+import PostEditable from "@/components/PostEditable";
 import { onDeletePost } from "@/app/_action/actions";
 
 Amplify.configure(outputs);
@@ -47,7 +48,7 @@ export default function PostList({
     <div>
       {posts.length > 0 ? (
         posts.map((post) => (
-          <Post
+          <PostEditable
             key={post.id}
             post={post}
             isSignedIn={isSignedIn}
