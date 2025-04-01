@@ -27,6 +27,8 @@ export interface ShapeBase {
   id: string;
   tool: ToolType;
   points: number[];
+  x?: number;
+  y?: number;
   strokeWidth: number;
   stroke: ColorType;
   draggable?: boolean;

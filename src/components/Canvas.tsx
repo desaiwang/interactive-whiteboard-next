@@ -210,6 +210,7 @@ const Canvas: React.FC = () => {
 
   const handleDragEnd = (e: any) => {
     console.log("handleDragEnd e", e);
+
     const id = e.target.id();
 
     // Find the shape in the array
@@ -218,6 +219,10 @@ const Canvas: React.FC = () => {
 
     const shape = shapes[shapeIndex];
     const shapesCopy = [...shapes];
+    console.log(
+      "x,y -> e.x, e.y",
+      `${shape.x}, ${shape.y} -> ${e.target.x()}, ${e.target.y()}`
+    );
 
     const updatedShape = {
       ...shape,
@@ -250,6 +255,8 @@ const Canvas: React.FC = () => {
           key={shape.id || i}
           id={shape.id}
           points={shape.points}
+          x={shape.x || 0}
+          y={shape.y || 0}
           stroke={shape.stroke}
           strokeWidth={shape.strokeWidth}
           tension={0.5}
@@ -269,8 +276,8 @@ const Canvas: React.FC = () => {
         <Rect
           key={shape.id || i}
           id={shape.id}
-          x={shape.points[0]}
-          y={shape.points[1]}
+          x={shape.x || shape.points[0]}
+          y={shape.y || shape.points[1]}
           width={rect.width || 0}
           height={rect.height || 0}
           stroke={shape.stroke}
@@ -286,8 +293,8 @@ const Canvas: React.FC = () => {
         <Circle
           key={shape.id || i}
           id={shape.id}
-          x={shape.points[0]}
-          y={shape.points[1]}
+          x={shape.x || shape.points[0]}
+          y={shape.y || shape.points[1]}
           radius={circle.radius || 0}
           stroke={shape.stroke}
           strokeWidth={shape.strokeWidth}
