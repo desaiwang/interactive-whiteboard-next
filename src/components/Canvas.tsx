@@ -27,11 +27,16 @@ const Canvas: React.FC = () => {
   } = useCanvas();
 
   const [stageSize, setStageSize] = useState({
-    width: window.innerWidth,
-    height: window.innerHeight,
+    width: 0,
+    height: 0,
   });
 
   useEffect(() => {
+    setStageSize({
+      width: window.innerWidth,
+      height: window.innerHeight,
+    });
+
     const handleResize = () => {
       setStageSize({
         width: window.innerWidth,
@@ -42,6 +47,10 @@ const Canvas: React.FC = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    console.log("shapes chaged", shapes);
+  }, [shapes]);
 
   // Handle transformer for selected shape
   useEffect(() => {

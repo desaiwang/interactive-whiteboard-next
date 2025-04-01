@@ -188,6 +188,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Undo function
   const undo = () => {
+    console.log("undo pressed", history);
     if (!canUndo) return;
 
     const newIndex = historyIndex - 1;
@@ -200,6 +201,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Redo function
   const redo = () => {
+    console.log("redo pressed", history);
     if (!canRedo) return;
 
     const newIndex = historyIndex + 1;

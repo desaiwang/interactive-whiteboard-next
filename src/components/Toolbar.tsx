@@ -26,9 +26,9 @@ const colorOptions = [
   { name: "Black", value: "#000000" },
   { name: "Red", value: "#ef4444" },
   { name: "Blue", value: "#3b82f6" },
-  { name: "Green", value: "#22c55e" },
+  //{ name: "Green", value: "#22c55e" },
   { name: "Yellow", value: "#eab308" },
-  { name: "Purple", value: "#8b5cf6" },
+  // { name: "Purple", value: "#8b5cf6" },
 ];
 
 export const Toolbar: React.FC = () => {
@@ -67,9 +67,7 @@ export const Toolbar: React.FC = () => {
                   variant={selectedTool === tool.value ? "default" : "outline"}
                   size="icon"
                   className={`w-10 h-10 ${
-                    selectedTool === tool.value
-                      ? "bg-whiteboard-primary text-white"
-                      : ""
+                    selectedTool === tool.value ? "bg-[#6366f1] text-white" : ""
                   }`}
                   onClick={() => setSelectedTool(tool.value as ToolType)}
                 >
@@ -85,7 +83,7 @@ export const Toolbar: React.FC = () => {
       </div>
 
       <div className="border-t border-gray-200 pt-2">
-        <div className="flex flex-wrap justify-center gap-1 mb-2">
+        <div className="flex flex-col justify-center gap-1 mb-2">
           {colorOptions.map((color) => (
             <TooltipProvider key={color.value}>
               <Tooltip>
