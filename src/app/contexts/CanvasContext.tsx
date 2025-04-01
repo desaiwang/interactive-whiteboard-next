@@ -30,6 +30,9 @@ export interface ShapeBase {
   strokeWidth: number;
   stroke: ColorType;
   draggable?: boolean;
+  //createdAt?: string;
+  deleted: boolean;
+  //deletedAt?: string;
 }
 
 export interface Line extends ShapeBase {
@@ -49,6 +52,14 @@ export interface Circle extends ShapeBase {
 
 export type Shape = Line | Rectangle | Circle;
 
+export type Action = "move" | "create" | "delete";
+export type ActionType = {
+  type: Action;
+  shapeId: string;
+  transform?: string;
+  // shape?: Shape;
+};
+
 // Create the canvas context
 interface CanvasContextType {
   shapes: Shape[];
@@ -62,8 +73,9 @@ interface CanvasContextType {
   isDrawing: React.MutableRefObject<boolean>;
   historyIndex: number;
   setHistoryIndex: React.Dispatch<React.SetStateAction<number>>;
-  history: Shape[][];
-  setHistory: React.Dispatch<React.SetStateAction<Shape[][]>>;
+  history: ActionType[];
+  setHistory: React.Dispatch<React.SetStateAction<ActionType[]>>;
+  updateHistory: (newAction: ActionType) => void;
   canUndo: boolean;
   canRedo: boolean;
   undo: () => void;
@@ -102,7 +114,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   // History for undo/redo
-  const [history, setHistory] = useState<Shape[][]>([[]]);
+  const [history, setHistory] = useState<ActionType[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number>(0);
 
   // Shape selection for moving and editing
@@ -160,40 +172,70 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Computed properties for undo/redo
   const canUndo = historyIndex > 0;
-  const canRedo = historyIndex < history.length - 1;
+  const canRedo = history.length != 0 && historyIndex <= history.length - 1;
 
   // Record history when shapes change
-  useEffect(() => {
-    // Skip on initial load
-    if (shapes.length === 0 && history[0].length === 0) return;
-
-    // Skip if we're in the middle of an undo/redo operation
-    const currentHistoryShapes = history[historyIndex] || [];
-    const shapesAreEqual =
-      shapes.length === currentHistoryShapes.length &&
-      JSON.stringify(shapes) === JSON.stringify(currentHistoryShapes);
-
-    if (shapesAreEqual) return;
-
-    // If we're not at the end of the history array, we need to truncate it
+  const updateHistory = (newAction: ActionType) => {
     if (historyIndex < history.length - 1) {
-      setHistory((prev) => prev.slice(0, historyIndex + 1).concat([shapes]));
-      setHistoryIndex(historyIndex + 1);
+      setHistory((prev) => [...prev.slice(0, historyIndex + 1), newAction]);
+      setHistoryIndex((prev) => prev + 1);
     } else {
       // Add new state to history
-      setHistory((prev) => [...prev, [...shapes]]);
-      setHistoryIndex(historyIndex + 1);
+      setHistory((prev) => [...prev, newAction]);
+      setHistoryIndex((prev) => prev + 1);
     }
-  }, [shapes]);
+  };
+
+  //OLD: manage history
+  // useEffect(() => {
+  //   // Skip on initial load
+  //   if (shapes.length === 0 && history.length === 0) return;
+
+  //   // Skip if we're in the middle of an undo/redo operation
+  //   // const currentHistoryShapes = history[historyIndex] || [];
+  //   // const shapesAreEqual =
+  //   //   shapes.length === currentHistoryShapes.length &&
+  //   //   JSON.stringify(shapes) === JSON.stringify(currentHistoryShapes);
+
+  //   // if (shapesAreEqual) return;
+
+  //   // If we're not at the end of the history array, we need to truncate it
+  //   if (historyIndex < history.length - 1) {
+  //     setHistory((prev) => prev.slice(0, historyIndex + 1).concat([shapes]));
+  //     setHistoryIndex(historyIndex + 1);
+  //   } else {
+  //     // Add new state to history
+  //     setHistory((prev) => [...prev, [...shapes]]);
+  //     setHistoryIndex(historyIndex + 1);
+  //   }
+  // }, [shapes]);
 
   // Undo function
   const undo = () => {
     console.log("undo pressed", history);
     if (!canUndo) return;
 
+    const lastAction = history[historyIndex - 1];
+    if (lastAction.type === "delete") {
+      const newShapes = shapes.map((shape) =>
+        shape.id !== lastAction.shapeId ? shape : { ...shape, deleted: false }
+      );
+      setShapes(newShapes);
+    } else if (lastAction.type === "create") {
+      const newShapes = shapes.map((shape) =>
+        shape.id !== lastAction.shapeId ? shape : { ...shape, deleted: true }
+      );
+      setShapes(newShapes);
+    } else if (lastAction.type === "move") {
+      console.log("TODO: should move shapes back");
+    }
+
+    console.log("should undo action", lastAction);
+
     const newIndex = historyIndex - 1;
+    console.log("new index", newIndex);
     setHistoryIndex(newIndex);
-    setShapes([...history[newIndex]]);
+    //setShapes([...history[newIndex]]);
 
     // In real implementation, we would broadcast this to all users
     // socket?.emit('canvas_update', { roomId, shapes: history[newIndex] });
@@ -204,9 +246,26 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     console.log("redo pressed", history);
     if (!canRedo) return;
 
+    const nextAction = history[historyIndex];
+    console.log("should redo action", nextAction);
+    if (nextAction.type === "delete") {
+      const newShapes = shapes.map((shape) =>
+        shape.id !== nextAction.shapeId ? shape : { ...shape, deleted: true }
+      );
+      setShapes(newShapes);
+    } else if (nextAction.type === "create") {
+      const newShapes = shapes.map((shape) =>
+        shape.id !== nextAction.shapeId ? shape : { ...shape, deleted: false }
+      );
+      setShapes(newShapes);
+    } else if (nextAction.type === "move") {
+      console.log("TODO: should move shapes");
+    }
+
     const newIndex = historyIndex + 1;
+    console.log("new index", newIndex);
     setHistoryIndex(newIndex);
-    setShapes([...history[newIndex]]);
+    //setShapes([...history[newIndex]]);
 
     // In real implementation, we would broadcast this to all users
     // socket?.emit('canvas_update', { roomId, shapes: history[newIndex] });
@@ -231,7 +290,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     if (savedShapes) {
       const parsedShapes = JSON.parse(savedShapes) as Shape[];
       setShapes(parsedShapes);
-      setHistory((prev) => [...prev, parsedShapes]);
+      //setHistory((prev) => [...prev, parsedShapes]);
       setHistoryIndex((prev) => prev + 1);
     }
   };
@@ -241,7 +300,8 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     setShapes([]);
 
     // Add empty array to history
-    setHistory((prev) => [...prev, []]);
+    //TODO: also has the option to persist this state
+    //setHistory((prev) => [...prev, []]);
     setHistoryIndex((prev) => prev + 1);
 
     // In real implementation, we would broadcast this to all users
@@ -262,6 +322,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     setHistoryIndex,
     history,
     setHistory,
+    updateHistory,
     canUndo,
     canRedo,
     undo,

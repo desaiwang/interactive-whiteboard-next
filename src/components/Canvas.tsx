@@ -9,8 +9,14 @@ import {
   Transformer,
   Group,
 } from "react-konva";
-import { useCanvas, Shape, Point } from "@/app/contexts/CanvasContext";
+import {
+  useCanvas,
+  Shape,
+  Point,
+  ActionType,
+} from "@/app/contexts/CanvasContext";
 import { v4 as uuidv4 } from "uuid";
+import { deleteWebAuthnCredential } from "aws-amplify/auth";
 
 const Canvas: React.FC = () => {
   const stageRef = useRef<any>(null);
@@ -24,6 +30,7 @@ const Canvas: React.FC = () => {
     isDrawing,
     selectedShapeId,
     setSelectedShapeId,
+    updateHistory,
   } = useCanvas();
 
   const [stageSize, setStageSize] = useState({
@@ -98,18 +105,27 @@ const Canvas: React.FC = () => {
     // If not using selection tool, start drawing
     isDrawing.current = true;
     const pos = e.target.getStage().getPointerPosition();
-
+    const id = uuidv4(); // Generate a unique ID for the new shape
     const newShape: Shape = {
-      id: uuidv4(),
+      id: id,
       tool: selectedTool,
       points: [pos.x, pos.y],
       stroke: selectedTool === "eraser" ? "#ffffff" : selectedColor,
       strokeWidth,
       draggable: false, // Set to false while drawing, will be true when done for select tool
+      deleted: false,
     };
 
     // Add the new shape to the shapes array
     setShapes((prevShapes) => [...prevShapes, newShape]);
+
+    const newAction: ActionType = {
+      type: "create",
+      shapeId: id,
+    };
+    console.log("newAction", newAction);
+
+    updateHistory(newAction);
   };
 
   const handleMouseMove = (e: any) => {
@@ -211,10 +227,20 @@ const Canvas: React.FC = () => {
     shapesCopy[shapeIndex] = updatedShape;
 
     setShapes(shapesCopy);
+
+    const newAction: ActionType = {
+      type: "move",
+      shapeId: id,
+      transform: `${e.target.x()}, ${e.target.y()}`,
+    };
+    console.log("newAction", newAction);
+    updateHistory(newAction);
   };
 
   const renderShape = (shape: Shape, i: number) => {
-    if (
+    if (shape.deleted)
+      return null; // Skip deleted shapes
+    else if (
       shape.tool === "pen" ||
       shape.tool === "eraser" ||
       shape.tool === "line"
