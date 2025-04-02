@@ -89,7 +89,6 @@ const Canvas: React.FC = () => {
   const handleMouseDown = async (
     e: KonvaEventObject<MouseEvent | TouchEvent>
   ) => {
-    console.log("trying to understand type of e", typeof e);
     const clickedOnEmpty = e.target === e.target.getStage();
     //console.log("clicked", e.target);
 
@@ -111,9 +110,32 @@ const Canvas: React.FC = () => {
       return;
     }
 
+    if (selectedTool === "eraser") {
+      // Handle eraser tool
+      const id = e.target.id();
+      console.log("e.target", e.target);
+
+      if (id) {
+        publishEvent("make-invisible", id); // Publish the deleted shape to websocket
+
+        const updatedShapes = shapes.map((shape) =>
+          shape.id === id ? { ...shape, deleted: true } : shape
+        );
+
+        setShapes(updatedShapes); // Update state
+
+        updateHistory({
+          type: "delete",
+          shapeId: id,
+        }); //store action in history
+      }
+      return;
+    }
+
     // If not using selection tool, start drawing
     isDrawing.current = true;
     const pos = e.target.getStage()?.getPointerPosition();
+    if (!pos) return; // if can't get pointer position, do nothing
     const id = uuidv4(); // Generate a unique ID for the new shape
 
     //create shape, set x,y to be 0 if it's a line-ish shape
