@@ -215,7 +215,6 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Undo function
   const undo = () => {
-    console.log("undo pressed", history);
     if (!canUndo) return;
 
     const lastAction = history[historyIndex - 1];
@@ -238,10 +237,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
       setShapes(newShapes);
     }
 
-    console.log("should undo action", lastAction);
-
     const newIndex = historyIndex - 1;
-    console.log("new index", newIndex);
     setHistoryIndex(newIndex);
     //setShapes([...history[newIndex]]);
 
@@ -251,11 +247,9 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Redo function
   const redo = () => {
-    console.log("redo pressed", history);
     if (!canRedo) return;
 
     const nextAction = history[historyIndex];
-    console.log("should redo action", nextAction);
     if (nextAction.type === "delete") {
       const newShapes = shapes.map((shape) =>
         shape.id !== nextAction.shapeId ? shape : { ...shape, deleted: true }
@@ -280,7 +274,6 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     const newIndex = historyIndex + 1;
-    console.log("new index", newIndex);
     setHistoryIndex(newIndex);
     //setShapes([...history[newIndex]]);
 
