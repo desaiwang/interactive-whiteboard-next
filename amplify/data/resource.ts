@@ -35,6 +35,26 @@ const schema = a.schema({
       allow.publicApiKey().to(["read"]),
       allow.owner(),
     ]),
+
+  Shape: a
+    .model({
+      id: a.string().required(),
+      canvasId: a.string().required(),
+      tool: a.string().required(),
+      x: a.float().required(),
+      y: a.float().required(),
+      points: a.float().array().required(),
+      stroke: a.string().required(),
+      strokeWidth: a.float().required(),
+      deleted: a.boolean().default(false),
+      width: a.float(),
+      height: a.float(),
+      radius: a.float(),
+    })
+    .authorization((allow) => [
+      allow.publicApiKey().to(["read", "create", "update"]), //don't let guests delete records
+      allow.authenticated(),
+    ]),
 });
 
 //TODO: bring back when needed

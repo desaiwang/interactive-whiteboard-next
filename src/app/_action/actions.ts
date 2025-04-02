@@ -58,3 +58,47 @@ export async function deleteComment(id: string) {
 
   console.log("delete comment", data, errors);
 }
+
+export async function createShapeDB(
+  id: string,
+  canvasId: string,
+  tool: string,
+  x: number,
+  y: number,
+  points: number[],
+  stroke: string,
+  strokeWidth: number,
+  width?: number,
+  height?: number,
+  radius?: number
+) {
+  try {
+    const { data, errors } = await cookiesClient.models.Shape.create(
+      {
+        id,
+        canvasId,
+        tool,
+        x,
+        y,
+        points,
+        stroke,
+        strokeWidth,
+        width,
+        height,
+        radius,
+      },
+      { authMode: "apiKey" }
+    );
+
+    if (errors) {
+      console.error("Error creating shape:", errors);
+      return { success: false, errors };
+    }
+
+    console.log("Shape created:", data);
+    return { success: true, data };
+  } catch (error) {
+    console.error("Server error:", error);
+    return { success: false, error };
+  }
+}

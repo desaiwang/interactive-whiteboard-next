@@ -22,11 +22,13 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { Amplify } from "aws-amplify";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { createShapeDB } from "@/app/_action/actions";
 
 import outputs from "../../amplify_outputs.json";
 Amplify.configure(outputs);
 
-const Canvas: React.FC = () => {
+const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
+  console.log("canvasId", canvasId);
   const stageRef = useRef<KonvaNodeComponent | null>(null);
   const transformerRef = useRef<any>(null);
   const {
@@ -262,6 +264,32 @@ const Canvas: React.FC = () => {
       );
       setShapes(shapesCopy);
       await publishEvent("make-draggable", lastShape.id); //TODO: add canvasID? Publish the new shape to the channel
+
+      // Send shape to server
+      try {
+        const response = await createShapeDB(
+          lastShape.id,
+          canvasId, // Replace with actual canvasId
+          lastShape.tool,
+          lastShape.x,
+          lastShape.y,
+          lastShape.points,
+          lastShape.stroke,
+          lastShape.strokeWidth
+          // lastShape.width,
+          // lastShape.height,
+          // lastShape.radius
+        );
+
+        if (!response.success) {
+          console.error(
+            "Failed to save shape:",
+            response.errors || response.error
+          );
+        }
+      } catch (error) {
+        console.error("Unexpected error:", error);
+      }
 
       setLastShape(null); // Clear last shape after drawing
     }
