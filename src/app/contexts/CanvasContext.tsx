@@ -203,6 +203,9 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
                     y: y || 0,
                   }
             );
+          } else if (data.event.actionType === "clear-canvas") {
+            setShapes([]);
+            setHistoryIndex(-1);
           }
           //add handlers for different event types, mainly will change shapes
         },
@@ -384,15 +387,12 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Clear the canvas
   const clearCanvas = () => {
+    //TODO: add a warning that this will clear canvas for all users
+    toast("Clearing canvas for all users...");
     setShapes([]);
+    setHistoryIndex(-1);
 
-    // Add empty array to history
-    //TODO: also has the option to persist this state
-    //setHistory((prev) => [...prev, []]);
-    setHistoryIndex((prev) => prev + 1);
-
-    // In real implementation, we would broadcast this to all users
-    // socket?.emit('canvas_clear', { roomId });
+    publishEvent("clear-canvas", "");
   };
 
   const value = {

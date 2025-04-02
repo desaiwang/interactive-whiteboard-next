@@ -9,6 +9,7 @@ import {
   Transformer,
   Group,
 } from "react-konva";
+import { KonvaEventObject } from "konva/lib/Node";
 import {
   useCanvas,
   Shape,
@@ -85,7 +86,10 @@ const Canvas: React.FC = () => {
     }
   }, [selectedShapeId, shapes]);
 
-  const handleMouseDown = async (e: any) => {
+  const handleMouseDown = async (
+    e: KonvaEventObject<MouseEvent | TouchEvent>
+  ) => {
+    console.log("trying to understand type of e", typeof e);
     const clickedOnEmpty = e.target === e.target.getStage();
     //console.log("clicked", e.target);
 
@@ -98,7 +102,7 @@ const Canvas: React.FC = () => {
     if (selectedTool === "select") {
       if (!clickedOnEmpty) {
         const clickedOnTransformer =
-          e.target.getParent().className === "Transformer";
+          e.target.getParent()?.className === "Transformer";
         if (!clickedOnTransformer) {
           const id = e.target.id();
           setSelectedShapeId(id);
@@ -109,7 +113,7 @@ const Canvas: React.FC = () => {
 
     // If not using selection tool, start drawing
     isDrawing.current = true;
-    const pos = e.target.getStage().getPointerPosition();
+    const pos = e.target.getStage()?.getPointerPosition();
     const id = uuidv4(); // Generate a unique ID for the new shape
 
     //create shape, set x,y to be 0 if it's a line-ish shape
@@ -145,11 +149,11 @@ const Canvas: React.FC = () => {
 
   //updating the shape's points or dimensions while drawing
   // Updating the shape's points or dimensions while drawing
-  const handleMouseMove = (e: any) => {
+  const handleMouseMove = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (!isDrawing.current || !lastShape) return;
 
-    const stage = e.target.getStage();
-    const point = stage.getPointerPosition();
+    const point = e.target.getStage()?.getPointerPosition();
+    if (!point) return; // if can't get pointer position, do nothing
     let updatedShape;
 
     // Handle different shape types
@@ -215,14 +219,13 @@ const Canvas: React.FC = () => {
         shape.id !== lastShape.id ? shape : { ...shape, draggable: true }
       );
       setShapes(shapesCopy);
-
       await publishEvent("make-draggable", lastShape.id); //TODO: add canvasID? Publish the new shape to the channel
 
       setLastShape(null); // Clear last shape after drawing
     }
   };
 
-  const handleDragEnd = (e: any) => {
+  const handleDragEnd = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
     const id = e.target.id();
 
     // Find the shape in the array
@@ -247,11 +250,7 @@ const Canvas: React.FC = () => {
       from: { x: shape.x, y: shape.y },
       to: { x: e.target.x(), y: e.target.y() },
     };
-    console.log(
-      "x,y -> e.x, e.y",
-      `${shape.x}, ${shape.y} -> ${e.target.x()}, ${e.target.y()}`
-    );
-    console.log("newAction", newAction);
+
     updateHistory(newAction);
   };
 
@@ -284,7 +283,7 @@ const Canvas: React.FC = () => {
         />
       );
     } else if (shape.tool === "rectangle") {
-      const rect = shape as any;
+      const rect = shape as RectType;
       return (
         <Rect
           key={shape.id || i}
@@ -301,7 +300,7 @@ const Canvas: React.FC = () => {
         />
       );
     } else if (shape.tool === "circle") {
-      const circle = shape as any;
+      const circle = shape as CircleType;
       return (
         <Circle
           key={shape.id || i}
