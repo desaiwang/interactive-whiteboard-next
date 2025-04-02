@@ -246,25 +246,13 @@ const Canvas: React.FC = () => {
 
     // Set the shape to be draggable for selection after it's drawn
     if (lastShape) {
-      console.log("shapes", shapes);
       const shapesCopy = shapes.map((shape) =>
         shape.id !== lastShape.id ? shape : { ...shape, draggable: true }
       );
-      console.log("shapesCopy", shapesCopy);
       setShapes(shapesCopy);
 
-      if (lastShape?.tool === "rectangle") {
-        const rectShape = lastShape as RectType;
-        console.log("rectShape.width", rectShape.width);
-        console.log("rectShape", rectShape);
-      }
-      console.log("lastShape", lastShape);
       const shapeJson = JSON.stringify(lastShape);
-      console.log("shapeJson", shapeJson);
-      await publishEvent("create", shapeJson); // Publish the new shape to the channel
-
-      // emit the shape to other users
-      // socket.emit('shape_added', { roomId, shape: shapes[shapes.length - 1] });
+      await publishEvent("create", shapeJson); //TODO: add canvasID? Publish the new shape to the channel
 
       setLastShape(null); // Clear last shape after drawing
     }
