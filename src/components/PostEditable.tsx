@@ -24,7 +24,7 @@ export default function PostEditable({
     let channel: EventsChannel;
 
     const connectAndSubscribe = async () => {
-      channel = await events.connect("default/channel");
+      channel = await events.connect("default/posts");
 
       channel.subscribe({
         next: (data) => {
@@ -45,7 +45,7 @@ export default function PostEditable({
     // await events.post("default/channel", { data });
 
     // Alternatively, publish events through the WebSocket channel
-    const channel = await events.connect("default/channel");
+    const channel = await events.connect("default/posts");
     await channel.publish({ data });
   }
 

@@ -13,10 +13,18 @@ import {
   useCanvas,
   Shape,
   Point,
+  Rectangle as RectType,
+  Circle as CircleType,
   ActionType,
 } from "@/app/contexts/CanvasContext";
 import { v4 as uuidv4 } from "uuid";
-import { deleteWebAuthnCredential } from "aws-amplify/auth";
+import { Amplify } from "aws-amplify";
+import { events, type EventsChannel } from "aws-amplify/data";
+import { Schema } from "@/../amplify/data/resource";
+import { useWebSocket } from "@/hooks/useWebSocket";
+
+import outputs from "../../amplify_outputs.json";
+Amplify.configure(outputs);
 
 const Canvas: React.FC = () => {
   const stageRef = useRef<any>(null);
@@ -38,6 +46,22 @@ const Canvas: React.FC = () => {
     height: 0,
   });
   const [lastShape, setLastShape] = useState<Shape | null>(null);
+  const clientId = useRef<string | null>(null);
+
+  //set up a unique client ID for this websocket connection
+  useEffect(() => {
+    // Check if there's already a UUID in sessionStorage
+    const storedClientId = sessionStorage.getItem("clientId");
+
+    if (storedClientId) {
+      clientId.current = storedClientId; // Use the existing UUID from the tab session
+    } else {
+      const newClientId = uuidv4();
+      sessionStorage.setItem("clientId", newClientId); // Store the new UUID in sessionStorage
+      clientId.current = newClientId; // Set the client ID in state
+    }
+  }, []);
+  const { publishEvent } = useWebSocket(clientId);
 
   useEffect(() => {
     setStageSize({
@@ -81,9 +105,9 @@ const Canvas: React.FC = () => {
     }
   }, [selectedShapeId, shapes]);
 
-  const handleMouseDown = (e: any) => {
+  const handleMouseDown = async (e: any) => {
     const clickedOnEmpty = e.target === e.target.getStage();
-    console.log("clicked", e.target);
+    //console.log("clicked", e.target);
 
     // Clear selection when clicking on empty canvas
     if (clickedOnEmpty) {
@@ -132,8 +156,6 @@ const Canvas: React.FC = () => {
             deleted: false,
           };
 
-    console.log("newShape JSON", JSON.stringify(newShape));
-
     // Add the new shape to the shapes array
     setShapes((prevShapes) => [...prevShapes, newShape]);
     setLastShape(newShape); // Store the last shape for later use
@@ -156,7 +178,8 @@ const Canvas: React.FC = () => {
 
     // Make a shallow copy of the shapes array
     if (lastShape) {
-      if (selectedTool === "pen" || selectedTool === "eraser") {
+      const selectedToolType = lastShape.tool;
+      if (selectedToolType === "pen" || selectedToolType === "eraser") {
         // For pen and eraser, add points for a free-form line
         const newPoints = [...lastShape.points, point.x, point.y];
         const updatedShape = { ...lastShape, points: newPoints };
@@ -164,9 +187,9 @@ const Canvas: React.FC = () => {
         const shapesCopy = shapes.map((shape) =>
           shape.id !== lastShape.id ? shape : updatedShape
         );
-        setShapes(shapesCopy);
         setLastShape(updatedShape);
-      } else if (selectedTool === "line") {
+        setShapes(shapesCopy);
+      } else if (selectedToolType === "line") {
         // For line, keep start point and update end point
         const newPoints = [
           lastShape.points[0],
@@ -179,23 +202,25 @@ const Canvas: React.FC = () => {
         const shapesCopy = shapes.map((shape) =>
           shape.id !== lastShape.id ? shape : updatedShape
         );
+        setLastShape(updatedShape);
         setShapes(shapesCopy);
-      } else if (selectedTool === "rectangle") {
+      } else if (selectedToolType === "rectangle") {
         // For rectangle, calculate width and height
         const width = point.x - lastShape.x;
         const height = point.y - lastShape.y;
 
-        const updatedShape = {
+        const updatedShape: RectType = {
           ...lastShape,
           width,
           height,
         };
-
+        console.log("drawing rectangle", updatedShape);
         const shapesCopy = shapes.map((shape) =>
           shape.id !== lastShape.id ? shape : updatedShape
         );
+        setLastShape(updatedShape);
         setShapes(shapesCopy);
-      } else if (selectedTool === "circle") {
+      } else if (selectedToolType === "circle") {
         // For circle, calculate radius
         const dx = point.x - lastShape.x;
         const dy = point.y - lastShape.y;
@@ -205,29 +230,44 @@ const Canvas: React.FC = () => {
           ...lastShape,
           radius,
         };
-
         const shapesCopy = shapes.map((shape) =>
           shape.id !== lastShape.id ? shape : updatedShape
         );
+
+        setLastShape(updatedShape);
         setShapes(shapesCopy);
       }
     }
   };
 
-  const handleMouseUp = () => {
+  //finish drawing the shape
+  const handleMouseUp = async () => {
     isDrawing.current = false;
 
     // Set the shape to be draggable for selection after it's drawn
-    if (shapes.length > 0) {
-      const shapesCopy = [...shapes];
-      const lastShape = shapesCopy[shapesCopy.length - 1];
-      const updatedShape = { ...lastShape, draggable: true };
-      shapesCopy[shapesCopy.length - 1] = updatedShape;
+    if (lastShape) {
+      console.log("shapes", shapes);
+      const shapesCopy = shapes.map((shape) =>
+        shape.id !== lastShape.id ? shape : { ...shape, draggable: true }
+      );
+      console.log("shapesCopy", shapesCopy);
       setShapes(shapesCopy);
-    }
 
-    // In a real implementation, we would emit the shape to other users
-    // socket.emit('shape_added', { roomId, shape: shapes[shapes.length - 1] });
+      if (lastShape?.tool === "rectangle") {
+        const rectShape = lastShape as RectType;
+        console.log("rectShape.width", rectShape.width);
+        console.log("rectShape", rectShape);
+      }
+      console.log("lastShape", lastShape);
+      const shapeJson = JSON.stringify(lastShape);
+      console.log("shapeJson", shapeJson);
+      await publishEvent("create", shapeJson); // Publish the new shape to the channel
+
+      // emit the shape to other users
+      // socket.emit('shape_added', { roomId, shape: shapes[shapes.length - 1] });
+
+      setLastShape(null); // Clear last shape after drawing
+    }
   };
 
   const handleDragEnd = (e: any) => {
@@ -335,10 +375,10 @@ const Canvas: React.FC = () => {
       <Stage
         width={stageSize.width}
         height={stageSize.height}
-        onMouseDown={handleMouseDown}
+        onMouseDown={async (e) => await handleMouseDown(e)}
         onMousemove={handleMouseMove}
         onMouseup={handleMouseUp}
-        onTouchStart={handleMouseDown}
+        onTouchStart={async (e) => await handleMouseDown(e)}
         onTouchMove={handleMouseMove}
         onTouchEnd={handleMouseUp}
         ref={stageRef}

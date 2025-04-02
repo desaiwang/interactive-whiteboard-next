@@ -4,17 +4,17 @@ import React, { useState, useEffect } from "react";
 import { Amplify } from "aws-amplify";
 import { events } from "aws-amplify/data";
 
-Amplify.configure({
-  API: {
-    Events: {
-      endpoint:
-        "https://ll5c243i7rcnbiycgzfil25yqq.appsync-api.us-east-1.amazonaws.com/event",
-      region: "us-east-1",
-      defaultAuthMode: "apiKey",
-      apiKey: "da2-zbsn7rzsq5hxlkqjdvp7pt7tq4",
-    },
-  },
-});
+// Amplify.configure({
+//   API: {
+//     Events: {
+//       endpoint:
+//         "https://ll5c243i7rcnbiycgzfil25yqq.appsync-api.us-east-1.amazonaws.com/event",
+//       region: "us-east-1",
+//       defaultAuthMode: "apiKey",
+//       apiKey: "da2-zbsn7rzsq5hxlkqjdvp7pt7tq4",
+//     },
+//   },
+// });
 
 export default function App() {
   const [myEvents, setMyEvents] = useState<unknown[]>([]);
@@ -23,7 +23,7 @@ export default function App() {
     let channel: EventsChannel;
 
     const connectAndSubscribe = async () => {
-      channel = await events.connect("default/channel");
+      channel = await events.connect("default/posts");
 
       channel.subscribe({
         next: (data) => {
@@ -41,10 +41,10 @@ export default function App() {
 
   async function publishEvent() {
     // Publish via HTTP POST
-    await events.post("default/channel", { some: "data" });
+    await events.post("default/canvas1", { some: "data" });
 
     // Alternatively, publish events through the WebSocket channel
-    const channel = await events.connect("default/channel");
+    const channel = await events.connect("default/posts");
     await channel.publish({ some: "data" });
   }
 
