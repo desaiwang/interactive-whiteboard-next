@@ -61,28 +61,46 @@ export const useWebSocket = (clientIdRef: React.RefObject<string | null>) => {
       channel.subscribe({
         next: (data) => {
           if (data.event.clientId === clientIdRef.current) return; // Ignore own events
-          const parsedData = JSON.parse(data.event.data);
-          console.log(parsedData);
-          switch (data.event.actionType) {
-            case "create":
-              const createdShape = createShape(parsedData);
-              console.log("createdShape", createdShape);
 
-              const newShapes = [...shapes, createdShape];
-              console.log("newShapes");
-              setShapes(newShapes);
-              break;
-            case "update":
-              const updatedShape = createShape(parsedData);
-              console.log("updatedShape", updatedShape);
+          if (
+            data.event.actionType === "create" ||
+            data.event.actionType === "update"
+          ) {
+            const parsedData = JSON.parse(data.event.data);
+            const newShape = createShape(parsedData);
 
-              const newShapes2 = shapes.map((shape) =>
-                shape.id === updatedShape.id ? updatedShape : shape
-              );
-              console.log("newShapes", newShapes2);
+            //console.log(parsedData);
 
-              setShapes(newShapes2);
-              break;
+            switch (data.event.actionType) {
+              case "create":
+                const newShapes = [...shapes, newShape];
+                setShapes(newShapes);
+                break;
+              case "update":
+                const updatedShapes = shapes.map((shape) =>
+                  shape.id === newShape.id ? newShape : shape
+                );
+                setShapes(updatedShapes);
+                break;
+            }
+          } else if (data.event.actionType === "make-draggable") {
+            const shapeId = data.event.data;
+            const updatedShapes = shapes.map((shape) =>
+              shape.id === shapeId ? { ...shape, draggable: true } : shape
+            );
+            setShapes(updatedShapes);
+          } else if (data.event.actionType === "make-invisible") {
+            const shapeId = data.event.data;
+            const updatedShapes = shapes.map((shape) =>
+              shape.id === shapeId ? { ...shape, deleted: true } : shape
+            );
+            setShapes(updatedShapes);
+          } else if (data.event.actionType === "make-visible") {
+            const shapeId = data.event.data;
+            const updatedShapes = shapes.map((shape) =>
+              shape.id === shapeId ? { ...shape, deleted: false } : shape
+            );
+            setShapes(updatedShapes);
           }
           //add handlers for different event types, mainly will change shapes
         },

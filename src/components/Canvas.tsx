@@ -81,10 +81,6 @@ const Canvas: React.FC = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // useEffect(() => {
-  //   console.log("shapes chaged", shapes);
-  // }, [shapes]);
-
   // Handle transformer for selected shape
   useEffect(() => {
     if (selectedShapeId && transformerRef.current) {
@@ -140,7 +136,7 @@ const Canvas: React.FC = () => {
       tool: selectedTool,
       x: isLine ? 0 : pos.x,
       y: isLine ? 0 : pos.y,
-      points: [], // Initialize points for rectangle and circle
+      points: isLine ? [pos.x, pos.y] : [], // Initialize points for rectangle and circle
       stroke: selectedTool === "eraser" ? "#ffffff" : selectedColor,
       strokeWidth,
       draggable: false, // Set to false while drawing, will be true when done for select tool
@@ -148,9 +144,7 @@ const Canvas: React.FC = () => {
     };
 
     //broadcast change
-    console.log("lastShape", newShape);
     const shapeJson = JSON.stringify(newShape);
-    console.log("created shapeJson", shapeJson);
     await publishEvent("create", shapeJson); //TODO: add canvasID? Publish the new shape to the channel
 
     // Add the new shape to the shapes array
@@ -187,6 +181,7 @@ const Canvas: React.FC = () => {
         break;
 
       case "line":
+        console.log("line", lastShape.points, point.x, point.y);
         // For line, keep start point and update end point
         updatedShape = {
           ...lastShape,
@@ -238,16 +233,13 @@ const Canvas: React.FC = () => {
       );
       setShapes(shapesCopy);
 
-      // const shapeJson = JSON.stringify(lastShape);
-      // await publishEvent("create", shapeJson); //TODO: add canvasID? Publish the new shape to the channel
+      await publishEvent("make-draggable", lastShape.id); //TODO: add canvasID? Publish the new shape to the channel
 
       setLastShape(null); // Clear last shape after drawing
     }
   };
 
   const handleDragEnd = (e: any) => {
-    console.log("handleDragEnd e", e);
-
     const id = e.target.id();
 
     // Find the shape in the array

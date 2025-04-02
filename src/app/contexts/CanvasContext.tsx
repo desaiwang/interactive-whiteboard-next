@@ -53,7 +53,13 @@ export interface Circle extends ShapeBase {
 
 export type Shape = Line | Rectangle | Circle;
 
-export type Action = "move" | "create" | "delete";
+export type Action =
+  | "move"
+  | "create"
+  | "delete"
+  | "make-draggable"
+  | "make-visible"
+  | "make-invisible";
 export type ActionType = {
   type: Action;
   shapeId: string;
@@ -150,28 +156,6 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
-  // Listen for room events (mock implementation)
-  useEffect(
-    () => {
-      // if (!socket) return;
-
-      // Mock receiving shapes from other users
-      const handleNewShape = (newShape: Shape) => {
-        setShapes((prevShapes) => [...prevShapes, newShape]);
-      };
-
-      // In a real implementation, we would set up actual event listeners
-      // socket.on('shape_added', handleNewShape);
-
-      return () => {
-        // socket.off('shape_added', handleNewShape);
-      };
-    },
-    [
-      /* socket */
-    ]
-  ); // Uncomment when using actual socket
-
   // Computed properties for undo/redo
   const canUndo = historyIndex >= 0;
   const canRedo = history.length > 0 && historyIndex < history.length - 1;
@@ -217,6 +201,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!canUndo) return;
 
     const lastAction = history[historyIndex];
+    console.log("undo: lastAction", lastAction);
     if (lastAction.type === "delete") {
       const newShapes = shapes.map((shape) =>
         shape.id !== lastAction.shapeId ? shape : { ...shape, deleted: false }
