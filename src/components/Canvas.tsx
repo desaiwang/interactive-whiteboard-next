@@ -13,8 +13,9 @@ import {
   useCanvas,
   Shape,
   Point,
-  Rectangle as RectType,
+  Rectangle as RectType, //appendedType to avoid conflict with react-konva
   Circle as CircleType,
+  Line as LineType,
   ActionType,
 } from "@/app/contexts/CanvasContext";
 import { v4 as uuidv4 } from "uuid";
@@ -131,30 +132,26 @@ const Canvas: React.FC = () => {
     isDrawing.current = true;
     const pos = e.target.getStage().getPointerPosition();
     const id = uuidv4(); // Generate a unique ID for the new shape
-    const newShape: Shape =
-      selectedTool === "rectangle" || selectedTool === "circle"
-        ? {
-            id: id,
-            tool: selectedTool,
-            x: pos.x,
-            y: pos.y,
-            points: [], // Initialize points for rectangle and circle
-            stroke: selectedColor,
-            strokeWidth,
-            draggable: false, // Set to false while drawing, will be true when done for select tool
-            deleted: false,
-          }
-        : {
-            id: id,
-            tool: selectedTool,
-            points: [pos.x, pos.y],
-            x: 0,
-            y: 0,
-            stroke: selectedTool === "eraser" ? "#ffffff" : selectedColor,
-            strokeWidth,
-            draggable: false, // Set to false while drawing, will be true when done for select tool
-            deleted: false,
-          };
+
+    //create shape, set x,y to be 0 if it's a line-ish shape
+    const isLine = !(selectedTool === "rectangle" || selectedTool === "circle");
+    const newShape: Shape = {
+      id: id,
+      tool: selectedTool,
+      x: isLine ? 0 : pos.x,
+      y: isLine ? 0 : pos.y,
+      points: [], // Initialize points for rectangle and circle
+      stroke: selectedTool === "eraser" ? "#ffffff" : selectedColor,
+      strokeWidth,
+      draggable: false, // Set to false while drawing, will be true when done for select tool
+      deleted: false,
+    };
+
+    //broadcast change
+    console.log("lastShape", newShape);
+    const shapeJson = JSON.stringify(newShape);
+    console.log("created shapeJson", shapeJson);
+    await publishEvent("create", shapeJson); //TODO: add canvasID? Publish the new shape to the channel
 
     // Add the new shape to the shapes array
     setShapes((prevShapes) => [...prevShapes, newShape]);
@@ -170,74 +167,64 @@ const Canvas: React.FC = () => {
   };
 
   //updating the shape's points or dimensions while drawing
+  // Updating the shape's points or dimensions while drawing
   const handleMouseMove = (e: any) => {
-    if (!isDrawing.current) return;
+    if (!isDrawing.current || !lastShape) return;
 
     const stage = e.target.getStage();
     const point = stage.getPointerPosition();
+    let updatedShape;
 
-    // Make a shallow copy of the shapes array
-    if (lastShape) {
-      const selectedToolType = lastShape.tool;
-      if (selectedToolType === "pen" || selectedToolType === "eraser") {
+    // Handle different shape types
+    switch (lastShape.tool) {
+      case "pen":
+      case "eraser":
         // For pen and eraser, add points for a free-form line
-        const newPoints = [...lastShape.points, point.x, point.y];
-        const updatedShape = { ...lastShape, points: newPoints };
-
-        const shapesCopy = shapes.map((shape) =>
-          shape.id !== lastShape.id ? shape : updatedShape
-        );
-        setLastShape(updatedShape);
-        setShapes(shapesCopy);
-      } else if (selectedToolType === "line") {
-        // For line, keep start point and update end point
-        const newPoints = [
-          lastShape.points[0],
-          lastShape.points[1],
-          point.x,
-          point.y,
-        ];
-        const updatedShape = { ...lastShape, points: newPoints };
-
-        const shapesCopy = shapes.map((shape) =>
-          shape.id !== lastShape.id ? shape : updatedShape
-        );
-        setLastShape(updatedShape);
-        setShapes(shapesCopy);
-      } else if (selectedToolType === "rectangle") {
-        // For rectangle, calculate width and height
-        const width = point.x - lastShape.x;
-        const height = point.y - lastShape.y;
-
-        const updatedShape: RectType = {
+        updatedShape = {
           ...lastShape,
-          width,
-          height,
-        };
-        console.log("drawing rectangle", updatedShape);
-        const shapesCopy = shapes.map((shape) =>
-          shape.id !== lastShape.id ? shape : updatedShape
-        );
-        setLastShape(updatedShape);
-        setShapes(shapesCopy);
-      } else if (selectedToolType === "circle") {
+          points: [...lastShape.points, point.x, point.y],
+        } as LineType;
+        break;
+
+      case "line":
+        // For line, keep start point and update end point
+        updatedShape = {
+          ...lastShape,
+          points: [lastShape.points[0], lastShape.points[1], point.x, point.y],
+        } as LineType;
+        break;
+
+      case "rectangle":
+        // For rectangle, calculate width and height
+        updatedShape = {
+          ...lastShape,
+          width: point.x - lastShape.x,
+          height: point.y - lastShape.y,
+        } as RectType;
+        break;
+
+      case "circle":
         // For circle, calculate radius
         const dx = point.x - lastShape.x;
         const dy = point.y - lastShape.y;
-        const radius = Math.sqrt(dx * dx + dy * dy);
-
-        const updatedShape = {
+        updatedShape = {
           ...lastShape,
-          radius,
-        };
-        const shapesCopy = shapes.map((shape) =>
-          shape.id !== lastShape.id ? shape : updatedShape
-        );
+          radius: Math.sqrt(dx * dx + dy * dy),
+        } as CircleType;
+        break;
 
-        setLastShape(updatedShape);
-        setShapes(shapesCopy);
-      }
+      default:
+        return; // Unknown tool type, do nothing
     }
+
+    // Update the shapes array with the modified shape
+    setShapes(
+      shapes.map((shape) => (shape.id !== lastShape.id ? shape : updatedShape))
+    );
+
+    // Update the last shape reference
+    setLastShape(updatedShape);
+    publishEvent("update", JSON.stringify(updatedShape)); // Publish the updated shape to the channel
   };
 
   //finish drawing the shape
@@ -251,8 +238,8 @@ const Canvas: React.FC = () => {
       );
       setShapes(shapesCopy);
 
-      const shapeJson = JSON.stringify(lastShape);
-      await publishEvent("create", shapeJson); //TODO: add canvasID? Publish the new shape to the channel
+      // const shapeJson = JSON.stringify(lastShape);
+      // await publishEvent("create", shapeJson); //TODO: add canvasID? Publish the new shape to the channel
 
       setLastShape(null); // Clear last shape after drawing
     }

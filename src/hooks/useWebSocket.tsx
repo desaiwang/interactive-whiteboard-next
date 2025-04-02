@@ -49,10 +49,7 @@ function createShape(shapeData: any) {
 }
 
 export const useWebSocket = (clientIdRef: React.RefObject<string | null>) => {
-  const {
-    //shapes,
-    setShapes,
-  } = useCanvas();
+  const { shapes, setShapes } = useCanvas();
 
   //set up for websocket connection using amplify events
   useEffect(() => {
@@ -64,13 +61,28 @@ export const useWebSocket = (clientIdRef: React.RefObject<string | null>) => {
       channel.subscribe({
         next: (data) => {
           if (data.event.clientId === clientIdRef.current) return; // Ignore own events
-          console.log("received data", data);
           const parsedData = JSON.parse(data.event.data);
           console.log(parsedData);
-          if (data.event.actionType === "create") {
-            const createdShape = createShape(parsedData);
-            console.log(createdShape);
-            setShapes((prevShapes) => [...prevShapes, createdShape]);
+          switch (data.event.actionType) {
+            case "create":
+              const createdShape = createShape(parsedData);
+              console.log("createdShape", createdShape);
+
+              const newShapes = [...shapes, createdShape];
+              console.log("newShapes");
+              setShapes(newShapes);
+              break;
+            case "update":
+              const updatedShape = createShape(parsedData);
+              console.log("updatedShape", updatedShape);
+
+              const newShapes2 = shapes.map((shape) =>
+                shape.id === updatedShape.id ? updatedShape : shape
+              );
+              console.log("newShapes", newShapes2);
+
+              setShapes(newShapes2);
+              break;
           }
           //add handlers for different event types, mainly will change shapes
         },
@@ -81,7 +93,7 @@ export const useWebSocket = (clientIdRef: React.RefObject<string | null>) => {
     connectAndSubscribe();
 
     return () => channel && channel.close();
-  }, [clientIdRef, setShapes]);
+  }, [clientIdRef, setShapes, shapes]);
 
   const publishEvent = async (actionType: string, data: string) => {
     //publish events through the WebSocket channel
