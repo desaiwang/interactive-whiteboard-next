@@ -55,9 +55,9 @@ const Canvas: React.FC = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  useEffect(() => {
-    console.log("shapes chaged", shapes);
-  }, [shapes]);
+  // useEffect(() => {
+  //   console.log("shapes chaged", shapes);
+  // }, [shapes]);
 
   // Handle transformer for selected shape
   useEffect(() => {
@@ -113,6 +113,7 @@ const Canvas: React.FC = () => {
             tool: selectedTool,
             x: pos.x,
             y: pos.y,
+            points: [], // Initialize points for rectangle and circle
             stroke: selectedColor,
             strokeWidth,
             draggable: false, // Set to false while drawing, will be true when done for select tool
@@ -129,6 +130,8 @@ const Canvas: React.FC = () => {
             draggable: false, // Set to false while drawing, will be true when done for select tool
             deleted: false,
           };
+
+    console.log("newShape JSON", JSON.stringify(newShape));
 
     // Add the new shape to the shapes array
     setShapes((prevShapes) => [...prevShapes, newShape]);

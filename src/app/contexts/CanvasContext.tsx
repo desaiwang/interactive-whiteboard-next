@@ -16,7 +16,6 @@ export type ToolType =
   | "rectangle"
   | "circle"
   | "eraser";
-export type ColorType = string;
 
 export interface Point {
   x: number;
@@ -30,7 +29,7 @@ export interface ShapeBase {
   x: number;
   y: number;
   strokeWidth: number;
-  stroke: ColorType;
+  stroke: string;
   draggable?: boolean;
   //createdAt?: string;
   deleted: boolean;
@@ -69,8 +68,8 @@ interface CanvasContextType {
   setShapes: React.Dispatch<React.SetStateAction<Shape[]>>;
   selectedTool: ToolType;
   setSelectedTool: React.Dispatch<React.SetStateAction<ToolType>>;
-  selectedColor: ColorType;
-  setSelectedColor: React.Dispatch<React.SetStateAction<ColorType>>;
+  selectedColor: string;
+  setSelectedColor: React.Dispatch<React.SetStateAction<string>>;
   strokeWidth: number;
   setStrokeWidth: React.Dispatch<React.SetStateAction<number>>;
   isDrawing: React.MutableRefObject<boolean>;
@@ -106,7 +105,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [selectedTool, setSelectedTool] = useState<ToolType>("pen");
-  const [selectedColor, setSelectedColor] = useState<ColorType>("#000000");
+  const [selectedColor, setSelectedColor] = useState<string>("#000000");
   const [strokeWidth, setStrokeWidth] = useState<number>(5);
   const isDrawing = useRef<boolean>(false);
 
@@ -118,7 +117,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // History for undo/redo
   const [history, setHistory] = useState<ActionType[]>([]);
-  const [historyIndex, setHistoryIndex] = useState<number>(0);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
 
   // Shape selection for moving and editing
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
@@ -174,11 +173,14 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
   ); // Uncomment when using actual socket
 
   // Computed properties for undo/redo
-  const canUndo = historyIndex > 0;
-  const canRedo = history.length != 0 && historyIndex <= history.length - 1;
+  const canUndo = historyIndex >= 0;
+  const canRedo = history.length > 0 && historyIndex < history.length - 1;
 
   // Record history when shapes change
   const updateHistory = (newAction: ActionType) => {
+    console.log("updating history", newAction);
+    console.log("history.length", history.length);
+    console.log("historyIndex", historyIndex);
     if (historyIndex < history.length - 1) {
       setHistory((prev) => [...prev.slice(0, historyIndex + 1), newAction]);
       setHistoryIndex((prev) => prev + 1);
@@ -215,9 +217,12 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Undo function
   const undo = () => {
+    console.log("undo, history", history);
+    console.log("history.length", history.length);
+    console.log("historyIndex", historyIndex);
     if (!canUndo) return;
 
-    const lastAction = history[historyIndex - 1];
+    const lastAction = history[historyIndex];
     if (lastAction.type === "delete") {
       const newShapes = shapes.map((shape) =>
         shape.id !== lastAction.shapeId ? shape : { ...shape, deleted: false }
@@ -247,9 +252,12 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Redo function
   const redo = () => {
+    console.log("redo, history", history);
+    console.log("history.length", history.length);
+    console.log("historyIndex", historyIndex);
     if (!canRedo) return;
 
-    const nextAction = history[historyIndex];
+    const nextAction = history[historyIndex + 1];
     if (nextAction.type === "delete") {
       const newShapes = shapes.map((shape) =>
         shape.id !== nextAction.shapeId ? shape : { ...shape, deleted: true }
