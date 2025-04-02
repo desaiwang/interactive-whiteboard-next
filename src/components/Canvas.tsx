@@ -37,6 +37,7 @@ const Canvas: React.FC = () => {
     width: 0,
     height: 0,
   });
+  const [lastShape, setLastShape] = useState<Shape | null>(null);
 
   useEffect(() => {
     setStageSize({
@@ -135,6 +136,7 @@ const Canvas: React.FC = () => {
 
     // Add the new shape to the shapes array
     setShapes((prevShapes) => [...prevShapes, newShape]);
+    setLastShape(newShape); // Store the last shape for later use
 
     const newAction: ActionType = {
       type: "create",
@@ -145,6 +147,7 @@ const Canvas: React.FC = () => {
     updateHistory(newAction);
   };
 
+  //updating the shape's points or dimensions while drawing
   const handleMouseMove = (e: any) => {
     if (!isDrawing.current) return;
 
@@ -152,17 +155,17 @@ const Canvas: React.FC = () => {
     const point = stage.getPointerPosition();
 
     // Make a shallow copy of the shapes array
-    const shapesCopy = [...shapes];
-    const lastShape = shapesCopy[shapesCopy.length - 1];
-
     if (lastShape) {
       if (selectedTool === "pen" || selectedTool === "eraser") {
         // For pen and eraser, add points for a free-form line
         const newPoints = [...lastShape.points, point.x, point.y];
         const updatedShape = { ...lastShape, points: newPoints };
 
-        shapesCopy[shapesCopy.length - 1] = updatedShape;
+        const shapesCopy = shapes.map((shape) =>
+          shape.id !== lastShape.id ? shape : updatedShape
+        );
         setShapes(shapesCopy);
+        setLastShape(updatedShape);
       } else if (selectedTool === "line") {
         // For line, keep start point and update end point
         const newPoints = [
@@ -173,7 +176,9 @@ const Canvas: React.FC = () => {
         ];
         const updatedShape = { ...lastShape, points: newPoints };
 
-        shapesCopy[shapesCopy.length - 1] = updatedShape;
+        const shapesCopy = shapes.map((shape) =>
+          shape.id !== lastShape.id ? shape : updatedShape
+        );
         setShapes(shapesCopy);
       } else if (selectedTool === "rectangle") {
         // For rectangle, calculate width and height
@@ -186,7 +191,9 @@ const Canvas: React.FC = () => {
           height,
         };
 
-        shapesCopy[shapesCopy.length - 1] = updatedShape;
+        const shapesCopy = shapes.map((shape) =>
+          shape.id !== lastShape.id ? shape : updatedShape
+        );
         setShapes(shapesCopy);
       } else if (selectedTool === "circle") {
         // For circle, calculate radius
@@ -199,7 +206,9 @@ const Canvas: React.FC = () => {
           radius,
         };
 
-        shapesCopy[shapesCopy.length - 1] = updatedShape;
+        const shapesCopy = shapes.map((shape) =>
+          shape.id !== lastShape.id ? shape : updatedShape
+        );
         setShapes(shapesCopy);
       }
     }

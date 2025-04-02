@@ -178,9 +178,6 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Record history when shapes change
   const updateHistory = (newAction: ActionType) => {
-    console.log("updating history", newAction);
-    console.log("history.length", history.length);
-    console.log("historyIndex", historyIndex);
     if (historyIndex < history.length - 1) {
       setHistory((prev) => [...prev.slice(0, historyIndex + 1), newAction]);
       setHistoryIndex((prev) => prev + 1);
@@ -217,9 +214,6 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Undo function
   const undo = () => {
-    console.log("undo, history", history);
-    console.log("history.length", history.length);
-    console.log("historyIndex", historyIndex);
     if (!canUndo) return;
 
     const lastAction = history[historyIndex];
@@ -252,9 +246,6 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Redo function
   const redo = () => {
-    console.log("redo, history", history);
-    console.log("history.length", history.length);
-    console.log("historyIndex", historyIndex);
     if (!canRedo) return;
 
     const nextAction = history[historyIndex + 1];
