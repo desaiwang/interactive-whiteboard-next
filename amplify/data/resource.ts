@@ -47,6 +47,7 @@ const schema = a.schema({
       stroke: a.string().required(),
       strokeWidth: a.float().required(),
       deleted: a.boolean().default(false),
+      draggable: a.boolean().default(true),
       width: a.float(),
       height: a.float(),
       radius: a.float(),

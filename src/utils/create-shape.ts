@@ -14,6 +14,7 @@ export function createShape(shapeData: any) {
   //common properties
   const baseShape: Shape = {
     id: shapeData.id,
+    canvasId: shapeData.canvasId,
     tool: shapeData.tool,
     x: shapeData.x,
     y: shapeData.y,

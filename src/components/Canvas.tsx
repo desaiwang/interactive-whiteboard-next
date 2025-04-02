@@ -164,7 +164,8 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     //create shape, set x,y to be 0 if it's a line-ish shape
     const isLine = !(selectedTool === "rectangle" || selectedTool === "circle");
     const newShape: Shape = {
-      id: id,
+      id,
+      canvasId,
       tool: selectedTool,
       x: isLine ? 0 : pos.x,
       y: isLine ? 0 : pos.y,
@@ -267,19 +268,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
 
       // Send shape to server
       try {
-        const response = await createShapeDB(
-          lastShape.id,
-          canvasId, // Replace with actual canvasId
-          lastShape.tool,
-          lastShape.x,
-          lastShape.y,
-          lastShape.points,
-          lastShape.stroke,
-          lastShape.strokeWidth
-          // lastShape.width,
-          // lastShape.height,
-          // lastShape.radius
-        );
+        const response = await createShapeDB(lastShape);
 
         if (!response.success) {
           console.error(

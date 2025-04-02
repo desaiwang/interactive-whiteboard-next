@@ -3,6 +3,7 @@
 import { cookiesClient } from "@/utils/amplify-utils";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { Shape as ShapeType } from "@/app/contexts/CanvasContext";
 
 export async function onDeletePost(id: string) {
   const { data, errors } = await cookiesClient.models.Post.delete(
@@ -59,36 +60,11 @@ export async function deleteComment(id: string) {
   console.log("delete comment", data, errors);
 }
 
-export async function createShapeDB(
-  id: string,
-  canvasId: string,
-  tool: string,
-  x: number,
-  y: number,
-  points: number[],
-  stroke: string,
-  strokeWidth: number,
-  width?: number,
-  height?: number,
-  radius?: number
-) {
+export async function createShapeDB(shape: ShapeType) {
   try {
-    const { data, errors } = await cookiesClient.models.Shape.create(
-      {
-        id,
-        canvasId,
-        tool,
-        x,
-        y,
-        points,
-        stroke,
-        strokeWidth,
-        width,
-        height,
-        radius,
-      },
-      { authMode: "apiKey" }
-    );
+    const { data, errors } = await cookiesClient.models.Shape.create(shape, {
+      authMode: "apiKey",
+    });
 
     if (errors) {
       console.error("Error creating shape:", errors);

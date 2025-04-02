@@ -313,6 +313,13 @@
               "isRequired": false,
               "attributes": []
             },
+            "draggable": {
+              "name": "draggable",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
             "width": {
               "name": "width",
               "isArray": false,
