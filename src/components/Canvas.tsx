@@ -106,15 +106,29 @@ const Canvas: React.FC = () => {
     isDrawing.current = true;
     const pos = e.target.getStage().getPointerPosition();
     const id = uuidv4(); // Generate a unique ID for the new shape
-    const newShape: Shape = {
-      id: id,
-      tool: selectedTool,
-      points: [pos.x, pos.y],
-      stroke: selectedTool === "eraser" ? "#ffffff" : selectedColor,
-      strokeWidth,
-      draggable: false, // Set to false while drawing, will be true when done for select tool
-      deleted: false,
-    };
+    const newShape: Shape =
+      selectedTool === "rectangle" || selectedTool === "circle"
+        ? {
+            id: id,
+            tool: selectedTool,
+            x: pos.x,
+            y: pos.y,
+            stroke: selectedColor,
+            strokeWidth,
+            draggable: false, // Set to false while drawing, will be true when done for select tool
+            deleted: false,
+          }
+        : {
+            id: id,
+            tool: selectedTool,
+            points: [pos.x, pos.y],
+            x: 0,
+            y: 0,
+            stroke: selectedTool === "eraser" ? "#ffffff" : selectedColor,
+            strokeWidth,
+            draggable: false, // Set to false while drawing, will be true when done for select tool
+            deleted: false,
+          };
 
     // Add the new shape to the shapes array
     setShapes((prevShapes) => [...prevShapes, newShape]);
@@ -160,10 +174,8 @@ const Canvas: React.FC = () => {
         setShapes(shapesCopy);
       } else if (selectedTool === "rectangle") {
         // For rectangle, calculate width and height
-        const x = lastShape.points[0];
-        const y = lastShape.points[1];
-        const width = point.x - x;
-        const height = point.y - y;
+        const width = point.x - lastShape.x;
+        const height = point.y - lastShape.y;
 
         const updatedShape = {
           ...lastShape,
@@ -175,10 +187,8 @@ const Canvas: React.FC = () => {
         setShapes(shapesCopy);
       } else if (selectedTool === "circle") {
         // For circle, calculate radius
-        const x = lastShape.points[0];
-        const y = lastShape.points[1];
-        const dx = point.x - x;
-        const dy = point.y - y;
+        const dx = point.x - lastShape.x;
+        const dy = point.y - lastShape.y;
         const radius = Math.sqrt(dx * dx + dy * dy);
 
         const updatedShape = {
@@ -219,10 +229,6 @@ const Canvas: React.FC = () => {
 
     const shape = shapes[shapeIndex];
     const shapesCopy = [...shapes];
-    console.log(
-      "x,y -> e.x, e.y",
-      `${shape.x}, ${shape.y} -> ${e.target.x()}, ${e.target.y()}`
-    );
 
     const updatedShape = {
       ...shape,
@@ -236,8 +242,13 @@ const Canvas: React.FC = () => {
     const newAction: ActionType = {
       type: "move",
       shapeId: id,
-      transform: `${e.target.x()}, ${e.target.y()}`,
+      from: { x: shape.x, y: shape.y },
+      to: { x: e.target.x(), y: e.target.y() },
     };
+    console.log(
+      "x,y -> e.x, e.y",
+      `${shape.x}, ${shape.y} -> ${e.target.x()}, ${e.target.y()}`
+    );
     console.log("newAction", newAction);
     updateHistory(newAction);
   };
@@ -255,8 +266,8 @@ const Canvas: React.FC = () => {
           key={shape.id || i}
           id={shape.id}
           points={shape.points}
-          x={shape.x || 0}
-          y={shape.y || 0}
+          x={shape.x}
+          y={shape.y}
           stroke={shape.stroke}
           strokeWidth={shape.strokeWidth}
           tension={0.5}
@@ -276,8 +287,8 @@ const Canvas: React.FC = () => {
         <Rect
           key={shape.id || i}
           id={shape.id}
-          x={shape.x || shape.points[0]}
-          y={shape.y || shape.points[1]}
+          x={shape.x}
+          y={shape.y}
           width={rect.width || 0}
           height={rect.height || 0}
           stroke={shape.stroke}
@@ -293,8 +304,8 @@ const Canvas: React.FC = () => {
         <Circle
           key={shape.id || i}
           id={shape.id}
-          x={shape.x || shape.points[0]}
-          y={shape.y || shape.points[1]}
+          x={shape.x}
+          y={shape.y}
           radius={circle.radius || 0}
           stroke={shape.stroke}
           strokeWidth={shape.strokeWidth}

@@ -27,8 +27,8 @@ export interface ShapeBase {
   id: string;
   tool: ToolType;
   points: number[];
-  x?: number;
-  y?: number;
+  x: number;
+  y: number;
   strokeWidth: number;
   stroke: ColorType;
   draggable?: boolean;
@@ -58,7 +58,8 @@ export type Action = "move" | "create" | "delete";
 export type ActionType = {
   type: Action;
   shapeId: string;
-  transform?: string;
+  from?: Point;
+  to?: Point;
   // shape?: Shape;
 };
 
@@ -229,7 +230,12 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
       );
       setShapes(newShapes);
     } else if (lastAction.type === "move") {
-      console.log("TODO: should move shapes back");
+      const newShapes = shapes.map((shape) =>
+        shape.id !== lastAction.shapeId
+          ? shape
+          : { ...shape, x: lastAction.from?.x || 0, y: lastAction.from?.y || 0 }
+      );
+      setShapes(newShapes);
     }
 
     console.log("should undo action", lastAction);
@@ -261,7 +267,16 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
       );
       setShapes(newShapes);
     } else if (nextAction.type === "move") {
-      console.log("TODO: should move shapes");
+      const newShapes = shapes.map((shape) =>
+        shape.id !== nextAction.shapeId
+          ? shape
+          : {
+              ...shape,
+              x: nextAction.to?.x || 0,
+              y: nextAction.to?.y || 0,
+            }
+      );
+      setShapes(newShapes);
     }
 
     const newIndex = historyIndex + 1;
