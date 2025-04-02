@@ -20,8 +20,6 @@ import {
 } from "@/app/contexts/CanvasContext";
 import { v4 as uuidv4 } from "uuid";
 import { Amplify } from "aws-amplify";
-import { events, type EventsChannel } from "aws-amplify/data";
-import { Schema } from "@/../amplify/data/resource";
 import { useWebSocket } from "@/hooks/useWebSocket";
 
 import outputs from "../../amplify_outputs.json";
@@ -40,6 +38,7 @@ const Canvas: React.FC = () => {
     selectedShapeId,
     setSelectedShapeId,
     updateHistory,
+    publishEvent,
   } = useCanvas();
 
   const [stageSize, setStageSize] = useState({
@@ -47,22 +46,6 @@ const Canvas: React.FC = () => {
     height: 0,
   });
   const [lastShape, setLastShape] = useState<Shape | null>(null);
-  const clientId = useRef<string | null>(null);
-
-  //set up a unique client ID for this websocket connection
-  useEffect(() => {
-    // Check if there's already a UUID in sessionStorage
-    const storedClientId = sessionStorage.getItem("clientId");
-
-    if (storedClientId) {
-      clientId.current = storedClientId; // Use the existing UUID from the tab session
-    } else {
-      const newClientId = uuidv4();
-      sessionStorage.setItem("clientId", newClientId); // Store the new UUID in sessionStorage
-      clientId.current = newClientId; // Set the client ID in state
-    }
-  }, []);
-  const { publishEvent } = useWebSocket(clientId);
 
   useEffect(() => {
     setStageSize({
