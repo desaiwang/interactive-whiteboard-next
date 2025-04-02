@@ -40,7 +40,7 @@ export interface ShapeBase {
 }
 
 export interface Line extends ShapeBase {
-  tool: "pen" | "line" | "eraser";
+  tool: "pen" | "line";
 }
 
 export interface Rectangle extends ShapeBase {

@@ -9,7 +9,7 @@ import {
   Transformer,
   Group,
 } from "react-konva";
-import { KonvaEventObject } from "konva/lib/Node";
+import { KonvaEventObject, KonvaNodeComponent } from "konva/lib/Node";
 import {
   useCanvas,
   Shape,
@@ -27,7 +27,7 @@ import outputs from "../../amplify_outputs.json";
 Amplify.configure(outputs);
 
 const Canvas: React.FC = () => {
-  const stageRef = useRef<any>(null);
+  const stageRef = useRef<KonvaNodeComponent | null>(null);
   const transformerRef = useRef<any>(null);
   const {
     shapes,
@@ -64,6 +64,26 @@ const Canvas: React.FC = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // useEffect(() => {
+  //   if (!stageRef.current) return;
+  //   const stage = stageRef.current.getStage();
+  //   const container = stage.container();
+
+  //   // ✅ Cursor logic
+  //   if (selectedTool === "eraser") {
+  //     container.style.cursor = "url(/eraser2.svg) 5 5, auto";
+  //   } else if (selectedTool === "select") {
+  //     container.style.cursor = "default";
+  //   } else {
+  //     container.style.cursor = "crosshair";
+  //   }
+
+  //   // Optional cleanup (if needed)
+  //   return () => {
+  //     container.style.cursor = "default";
+  //   };
+  // }, [selectedTool]);
 
   // Handle transformer for selected shape
   useEffect(() => {
@@ -124,6 +144,7 @@ const Canvas: React.FC = () => {
 
         setShapes(updatedShapes); // Update state
 
+        console.log("deleted shape", id);
         updateHistory({
           type: "delete",
           shapeId: id,
@@ -146,7 +167,7 @@ const Canvas: React.FC = () => {
       x: isLine ? 0 : pos.x,
       y: isLine ? 0 : pos.y,
       points: isLine ? [pos.x, pos.y] : [], // Initialize points for rectangle and circle
-      stroke: selectedTool === "eraser" ? "#ffffff" : selectedColor,
+      stroke: selectedColor,
       strokeWidth,
       draggable: false, // Set to false while drawing, will be true when done for select tool
       deleted: false,
@@ -181,7 +202,6 @@ const Canvas: React.FC = () => {
     // Handle different shape types
     switch (lastShape.tool) {
       case "pen":
-      case "eraser":
         // For pen and eraser, add points for a free-form line
         updatedShape = {
           ...lastShape,
@@ -279,11 +299,7 @@ const Canvas: React.FC = () => {
   const renderShape = (shape: Shape, i: number) => {
     if (shape.deleted)
       return null; // Skip deleted shapes
-    else if (
-      shape.tool === "pen" ||
-      shape.tool === "eraser" ||
-      shape.tool === "line"
-    ) {
+    else if (shape.tool === "pen" || shape.tool === "line") {
       return (
         <Line
           key={shape.id || i}
@@ -299,9 +315,6 @@ const Canvas: React.FC = () => {
           draggable={shape.draggable && selectedTool === "select"}
           // onDragMove={(e) => console.log("x, y", e.target.x(), e.target.y())}
           onDragEnd={handleDragEnd}
-          globalCompositeOperation={
-            shape.tool === "eraser" ? "destination-out" : "source-over"
-          }
         />
       );
     } else if (shape.tool === "rectangle") {
@@ -353,9 +366,14 @@ const Canvas: React.FC = () => {
         onTouchMove={handleMouseMove}
         onTouchEnd={handleMouseUp}
         ref={stageRef}
-        className="cursor-crosshair"
+        className={selectedTool === "eraser" ? "cursor-eraser" : ""}
         style={{
-          cursor: selectedTool === "select" ? "default" : "crosshair",
+          cursor:
+            selectedTool === "select"
+              ? "default"
+              : selectedTool !== "eraser"
+                ? "crosshair"
+                : "",
         }}
       >
         <Layer>

@@ -169,6 +169,10 @@
   animation: accordion-up 0.2s ease-out;
 }
 
-.custom-cursor {
-  cursor: url(/eraser.png), auto;
+.cursor-eraser {
+  /* cursor: pointer; */
+
+  cursor:
+    url(/delete.svg) 2 2,
+    auto !important;
 }
