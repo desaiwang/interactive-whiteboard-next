@@ -36,6 +36,19 @@ const schema = a.schema({
       allow.owner(),
     ]),
 
+  Canvas: a
+    .model({
+      id: a.string().required(),
+      name: a.string().default("unnamed"),
+      ownerId: a.string(),
+      collaborators: a.string().array(),
+    })
+    .secondaryIndexes((index) => [index("ownerId")])
+    .authorization((allow) => [
+      allow.publicApiKey().to(["read", "create", "update"]),
+      allow.owner(),
+    ]),
+
   Shape: a
     .model({
       id: a.string().required(),
