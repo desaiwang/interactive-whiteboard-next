@@ -117,3 +117,26 @@ export async function deleteShapeDB(id: string) {
     return { success: false, error };
   }
 }
+
+export async function getShapesDB(currentCanvasId: string) {
+  try {
+    const { data, errors } = await cookiesClient.models.Shape.list({
+      filter: {
+        canvasId: {
+          eq: currentCanvasId,
+        },
+      },
+    });
+
+    if (errors) {
+      console.error("Error getting shapes:", errors);
+      return { success: false, errors };
+    }
+
+    console.log(`Shape retrived for canvas ${currentCanvasId}:`, data);
+    return { success: true, data };
+  } catch (error) {
+    console.error("Server error:", error);
+    return { success: false, error };
+  }
+}

@@ -11,15 +11,14 @@ import {
 } from "react-konva";
 import { debounce } from "lodash";
 import { KonvaEventObject, KonvaNodeComponent } from "konva/lib/Node";
+import { useCanvas } from "@/app/contexts/CanvasContext";
 import {
-  useCanvas,
   Shape,
-  Point,
   Rectangle as RectType, //appendedType to avoid conflict with react-konva
   Circle as CircleType,
   Line as LineType,
   ActionType,
-} from "@/app/contexts/CanvasContext";
+} from "@/app/contexts/CanvasContextTypes";
 import { v4 as uuidv4 } from "uuid";
 import { Amplify } from "aws-amplify";
 import { useWebSocket } from "@/hooks/useWebSocket";
@@ -47,6 +46,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     setSelectedShapeId,
     updateHistory,
     publishEvent,
+    setCanvasId,
   } = useCanvas();
 
   const [stageSize, setStageSize] = useState({
@@ -72,25 +72,9 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // useEffect(() => {
-  //   if (!stageRef.current) return;
-  //   const stage = stageRef.current.getStage();
-  //   const container = stage.container();
-
-  //   // ✅ Cursor logic
-  //   if (selectedTool === "eraser") {
-  //     container.style.cursor = "url(/eraser2.svg) 5 5, auto";
-  //   } else if (selectedTool === "select") {
-  //     container.style.cursor = "default";
-  //   } else {
-  //     container.style.cursor = "crosshair";
-  //   }
-
-  //   // Optional cleanup (if needed)
-  //   return () => {
-  //     container.style.cursor = "default";
-  //   };
-  // }, [selectedTool]);
+  useEffect(() => {
+    setCanvasId(canvasId); // Set the canvas ID when the component mounts
+  }, [canvasId, setCanvasId]);
 
   // Handle transformer for selected shape
   useEffect(() => {

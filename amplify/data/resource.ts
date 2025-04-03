@@ -52,17 +52,23 @@ const schema = a.schema({
       height: a.float(),
       radius: a.float(),
     })
+    .secondaryIndexes((index) => [index("canvasId").name("byCanvasId")])
     .authorization((allow) => [
       allow.publicApiKey(), //TODO: prevent database delete or not?
       allow.authenticated(),
     ]),
 
-  // BatchDeleteShape: a.mutation().arguments({ canvasId: a.string().array() })
-  //   .returns(a.ref("Shape").array())
-  //   .authorization(allow => [allow.publicApiKey(), allow.authenticated()])
-  //   .handler(a.handler.custom({
-  //     dataSource: a.ref('Post'), entry:'./BatchDeleteShapeHandler.js'
-  // }))
+  BatchDeleteShape: a
+    .mutation()
+    .arguments({ canvasId: a.string().required() })
+    .returns(a.boolean())
+    .authorization((allow) => [allow.publicApiKey(), allow.authenticated()])
+    .handler(
+      a.handler.custom({
+        dataSource: a.ref("Shape"),
+        entry: "./BatchDeleteShapesByCanvasHandler.js",
+      })
+    ),
 });
 
 //TODO: bring back when needed

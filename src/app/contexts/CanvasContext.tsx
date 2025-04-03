@@ -15,107 +15,22 @@ import {
   createShapeDB,
   updateShapeDB,
   deleteShapeDB,
+  getShapesDB,
 } from "@/app/_action/actions";
 import { create } from "lodash";
-
-// Define our shape types
-export type ToolType =
-  | "select"
-  | "pen"
-  | "line"
-  | "rectangle"
-  | "circle"
-  | "eraser";
-
-export interface Point {
-  x: number;
-  y: number;
-}
-
-export interface ShapeBase {
-  id: string;
-  canvasId: string;
-  tool: ToolType;
-  points: number[];
-  x: number;
-  y: number;
-  strokeWidth: number;
-  stroke: string;
-  draggable?: boolean;
-  //createdAt?: string;
-  deleted: boolean;
-  //deletedAt?: string;
-}
-
-export interface Line extends ShapeBase {
-  tool: "pen" | "line";
-}
-
-export interface Rectangle extends ShapeBase {
-  tool: "rectangle";
-  width?: number;
-  height?: number;
-}
-
-export interface Circle extends ShapeBase {
-  tool: "circle";
-  radius?: number;
-}
-
-export type Shape = Line | Rectangle | Circle;
-
-//these are actions related to redo/undo (not websockets)
-export type Action = "move" | "create" | "delete";
-export type ActionType = {
-  type: Action;
-  shapeId: string;
-  from?: Point;
-  to?: Point;
-  // shape?: Shape;
-};
-
-// Create the canvas context
-interface CanvasContextType {
-  shapes: Shape[];
-  setShapes: React.Dispatch<React.SetStateAction<Shape[]>>;
-  selectedTool: ToolType;
-  setSelectedTool: React.Dispatch<React.SetStateAction<ToolType>>;
-  selectedColor: string;
-  setSelectedColor: React.Dispatch<React.SetStateAction<string>>;
-  strokeWidth: number;
-  setStrokeWidth: React.Dispatch<React.SetStateAction<number>>;
-  isDrawing: React.RefObject<boolean>;
-  historyIndex: number;
-  setHistoryIndex: React.Dispatch<React.SetStateAction<number>>;
-  history: ActionType[];
-  setHistory: React.Dispatch<React.SetStateAction<ActionType[]>>;
-  updateHistory: (newAction: ActionType) => void;
-  canUndo: boolean;
-  canRedo: boolean;
-  undo: () => void;
-  redo: () => void;
-  clearCanvas: () => void;
-  roomId: string;
-  setRoomId: React.Dispatch<React.SetStateAction<string>>;
-  userName: string;
-  setUserName: React.Dispatch<React.SetStateAction<string>>;
-  connected: boolean;
-  publishEvent: (
-    actionType: string,
-    data: string,
-    time: string
-  ) => Promise<void>;
-  saveCanvas: () => void;
-  loadCanvas: (roomId: string) => void;
-  selectedShapeId: string | null;
-  setSelectedShapeId: React.Dispatch<React.SetStateAction<string | null>>;
-}
+import {
+  ToolType,
+  Shape,
+  ActionType,
+  CanvasContextType,
+} from "./CanvasContextTypes";
 
 const CanvasContext = createContext<CanvasContextType | undefined>(undefined);
 
 export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  console.log("provider re-rendered");
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [selectedTool, setSelectedTool] = useState<ToolType>("pen");
   const [selectedColor, setSelectedColor] = useState<string>("#000000");
@@ -123,7 +38,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
   const isDrawing = useRef<boolean>(false);
 
   // Room and user information
-  const [roomId, setRoomId] = useState<string>("default-room");
+  const [canvasId, setCanvasId] = useState<string>("default/canvas");
   const [userName, setUserName] = useState<string>(
     "User-" + Math.floor(Math.random() * 1000)
   );
@@ -143,6 +58,28 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
   // Computed properties for undo/redo
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+
+  // Fetch shapes from the database on mount
+  useEffect(() => {
+    const fetchShapes = async () => {
+      try {
+        const { data, error } = await getShapesDB(canvasId);
+        console.log("shapes fetched from server", data);
+        if (!data) return;
+        const cleanedShapes = data.map(
+          ({ createdAt, updatedAt, ...shape }) =>
+            ({
+              ...shape,
+            }) as Shape
+        );
+        setShapes(cleanedShapes);
+      } catch (error) {
+        console.error("Error fetching shapes:", error);
+      }
+    };
+
+    fetchShapes();
+  }, [canvasId]);
 
   // Update undo/redo state when history changes
   useEffect(() => {
@@ -444,10 +381,6 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const newIndex = historyIndex + 1;
     setHistoryIndex(newIndex);
-    //setShapes([...history[newIndex]]);
-
-    // In real implementation, we would broadcast this to all users
-    // socket?.emit('canvas_update', { roomId, shapes: history[newIndex] });
   };
 
   // Save the current state of the canvas
@@ -456,16 +389,16 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     toast("In a real implementation, we would save to a database here.");
 
     // Mock implementation - save to localStorage for demo
-    localStorage.setItem(`whiteboard-${roomId}`, JSON.stringify(shapes));
+    localStorage.setItem(`whiteboard-${canvasId}`, JSON.stringify(shapes));
   };
 
   // Load canvas data by room ID
-  const loadCanvas = (loadRoomId: string) => {
+  const loadCanvas = (loadcanvasId: string) => {
     // In a real implementation, we would load from a database
-    toast(`Loading canvas for room: ${loadRoomId}`);
+    toast(`Loading canvas : ${loadcanvasId}`);
 
     // Mock implementation - load from localStorage for demo
-    const savedShapes = localStorage.getItem(`whiteboard-${loadRoomId}`);
+    const savedShapes = localStorage.getItem(`whiteboard-${loadcanvasId}`);
     if (savedShapes) {
       const parsedShapes = JSON.parse(savedShapes) as Shape[];
       setShapes(parsedShapes);
@@ -505,8 +438,8 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     undo,
     redo,
     clearCanvas,
-    roomId,
-    setRoomId,
+    canvasId,
+    setCanvasId,
     userName,
     setUserName,
     connected,
