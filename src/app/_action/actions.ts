@@ -3,6 +3,7 @@
 import { cookiesClient } from "@/utils/amplify-utils";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { Shape as ShapeType } from "@/app/contexts/CanvasContextTypes";
 
 export async function onDeletePost(id: string) {
   const { data, errors } = await cookiesClient.models.Post.delete(
@@ -57,4 +58,92 @@ export async function deleteComment(id: string) {
   );
 
   console.log("delete comment", data, errors);
+}
+
+export async function createShapeDB(shape: ShapeType) {
+  try {
+    const { data, errors } = await cookiesClient.models.Shape.create(shape, {
+      authMode: "apiKey",
+    });
+
+    if (errors) {
+      console.error("Error creating shape:", errors);
+      return { success: false, errors };
+    }
+
+    console.log("Shape created:", data);
+    return { success: true, data };
+  } catch (error) {
+    console.error("Server error:", error);
+    return { success: false, error };
+  }
+}
+
+export async function updateShapeDB(shape: ShapeType) {
+  try {
+    const { data, errors } = await cookiesClient.models.Shape.update(shape, {
+      authMode: "apiKey",
+    });
+
+    if (errors) {
+      console.error("Error creating shape:", errors);
+      return { success: false, errors };
+    }
+
+    console.log("Shape updated:", data);
+    return { success: true, data };
+  } catch (error) {
+    console.error("Server error:", error);
+    return { success: false, error };
+  }
+}
+
+export async function deleteShapeDB(id: string) {
+  try {
+    const { data, errors } = await cookiesClient.models.Shape.delete(
+      { id },
+      { authMode: "apiKey" }
+    );
+
+    if (errors) {
+      console.error("Error deleting shape:", errors);
+      return { success: false, errors };
+    }
+
+    console.log("Shape deleted:", data);
+    return { success: true, data };
+  } catch (error) {
+    console.error("Server error:", error);
+    return { success: false, error };
+  }
+}
+
+export async function getShapesDB(currentCanvasId: string) {
+  try {
+    //using secondary index for faster operation
+    const { data, errors } =
+      await cookiesClient.models.Shape.listShapeByCanvasId({
+        canvasId: currentCanvasId,
+      });
+
+    //prev implementation using filter
+    // cookiesClient.models.Shape.list({
+    //   filter: {
+    //     canvasId: {
+    //       eq: currentCanvasId,
+    //     },
+    //   },
+    // });
+
+    if (errors) {
+      console.error("Error getting shapes:", errors);
+      return { success: false, errors };
+    }
+
+    console.log(`Shape retrived for canvas ${currentCanvasId}:`, data);
+    return { success: true, data };
+  } catch (error) {
+    console.error("Server error:", error);
+    return { success: false, error };
+  }
 }

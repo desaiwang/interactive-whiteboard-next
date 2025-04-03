@@ -22,6 +22,7 @@ export async function AuthGetCurrentUserServer() {
       nextServerContext: { cookies },
       operation: (contextSpec) => getCurrentUser(contextSpec),
     });
+    console.log("got currentUser", currentUser);
     return currentUser;
   } catch {
     //if can't find user (guest login/ public api)
