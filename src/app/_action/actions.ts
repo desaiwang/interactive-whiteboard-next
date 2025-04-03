@@ -3,7 +3,7 @@
 import { cookiesClient } from "@/utils/amplify-utils";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { Shape as ShapeType } from "@/app/contexts/CanvasContext";
+import { Shape as ShapeType } from "@/app/contexts/CanvasContextTypes";
 
 export async function onDeletePost(id: string) {
   const { data, errors } = await cookiesClient.models.Post.delete(
