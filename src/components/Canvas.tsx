@@ -29,6 +29,7 @@ import {
 } from "@/app/_action/actions";
 
 import outputs from "../../amplify_outputs.json";
+import CanvasLoadingOverlay from "./CanvasLoadingOverlay";
 Amplify.configure(outputs);
 
 const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
@@ -47,6 +48,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     updateHistory,
     publishEvent,
     setCanvasId,
+    isFetchingData,
   } = useCanvas();
 
   const [stageSize, setStageSize] = useState({
@@ -451,68 +453,46 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
 
   return (
     <div className="whiteboard-container h-screen w-screen overflow-hidden bg-gray-50">
-      <Stage
-        width={stageSize.width}
-        height={stageSize.height}
-        onMouseDown={async (e) => await handleMouseDown(e)}
-        onMousemove={handleMouseMove}
-        onMouseup={handleMouseUp}
-        onTouchStart={async (e) => await handleMouseDown(e)}
-        onTouchMove={handleMouseMove}
-        onTouchEnd={handleMouseUp}
-        ref={stageRef}
-        className={selectedTool === "eraser" ? "cursor-eraser" : ""}
-        style={{
-          cursor:
-            selectedTool === "select"
-              ? "default"
-              : selectedTool !== "eraser"
-                ? "crosshair"
-                : "",
-        }}
-      >
-        <Layer>
-          {shapes.map((shape, i) => renderShape(shape, i))}
-          <Group>
-            <Transformer
-              ref={transformerRef}
-              boundBoxFunc={(oldBox, newBox) => {
-                // Limit size
-                if (newBox.width < 5 || newBox.height < 5) {
-                  return oldBox;
-                }
-                return newBox;
-              }}
-            >
-              {/* {selectedShapeId && (
-                <Group
-                  x={100}
-                  y={100}
-                  onClick={() => {
-                    console.log("onClick transformer");
-                    handleDeleteButtonClick
-                  }}
-                  onTap={handleDeleteButtonClick}
-                >
-                  <Rect
-                    width={24}
-                    height={24}
-                    fill="#8E9196"
-                    cornerRadius={4}
-                  />
-                  <Line
-                    points={[6, 6, 18, 18, 12, 12, 6, 18, 18, 6]}
-                    stroke="white"
-                    strokeWidth={2}
-                    lineCap="round"
-                    lineJoin="round"
-                  />
-                </Group>
-              )} */}
-            </Transformer>
-          </Group>
-        </Layer>
-      </Stage>
+      {isFetchingData ? (
+        <CanvasLoadingOverlay />
+      ) : (
+        <Stage
+          width={stageSize.width}
+          height={stageSize.height}
+          onMouseDown={async (e) => await handleMouseDown(e)}
+          onMousemove={handleMouseMove}
+          onMouseup={handleMouseUp}
+          onTouchStart={async (e) => await handleMouseDown(e)}
+          onTouchMove={handleMouseMove}
+          onTouchEnd={handleMouseUp}
+          ref={stageRef}
+          className={selectedTool === "eraser" ? "cursor-eraser" : ""}
+          style={{
+            cursor:
+              selectedTool === "select"
+                ? "default"
+                : selectedTool !== "eraser"
+                  ? "crosshair"
+                  : "",
+          }}
+        >
+          <Layer>
+            {shapes.map((shape, i) => renderShape(shape, i))}
+            <Group>
+              <Transformer
+                ref={transformerRef}
+                boundBoxFunc={(oldBox, newBox) => {
+                  // Limit size
+                  if (newBox.width < 5 || newBox.height < 5) {
+                    return oldBox;
+                  }
+                  return newBox;
+                }}
+              ></Transformer>
+            </Group>
+          </Layer>
+        </Stage>
+      )}
     </div>
   );
 };

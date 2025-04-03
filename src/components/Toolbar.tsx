@@ -8,7 +8,18 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useCanvas, ToolType } from "@/app/contexts/CanvasContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useCanvas } from "@/app/contexts/CanvasContext";
 import {
   Pencil,
   MousePointer,
@@ -184,23 +195,44 @@ export const Toolbar: React.FC = () => {
           </Tooltip>
         </TooltipProvider>
 
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="w-10 h-10 text-red-500 hover:text-red-600"
+        <AlertDialog>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="w-10 h-10 text-red-500 hover:text-red-600"
+                  >
+                    <Trash2 size={20} />
+                  </Button>
+                </AlertDialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Clear Canvas</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Clear Canvas</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to clear the canvas? This action cannot be
+                undone and will remove all drawings for all users in this room.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
                 onClick={clearCanvas}
+                className="bg-red-500 text-white hover:bg-red-600"
               >
-                <Trash2 size={20} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              <p>Clear Canvas</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+                Clear Canvas
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

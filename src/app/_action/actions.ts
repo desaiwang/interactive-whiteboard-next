@@ -120,13 +120,20 @@ export async function deleteShapeDB(id: string) {
 
 export async function getShapesDB(currentCanvasId: string) {
   try {
-    const { data, errors } = await cookiesClient.models.Shape.list({
-      filter: {
-        canvasId: {
-          eq: currentCanvasId,
-        },
-      },
-    });
+    //using secondary index for faster operation
+    const { data, errors } =
+      await cookiesClient.models.Shape.listShapeByCanvasId({
+        canvasId: currentCanvasId,
+      });
+
+    //prev implementation using filter
+    // cookiesClient.models.Shape.list({
+    //   filter: {
+    //     canvasId: {
+    //       eq: currentCanvasId,
+    //     },
+    //   },
+    // });
 
     if (errors) {
       console.error("Error getting shapes:", errors);

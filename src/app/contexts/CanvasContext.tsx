@@ -52,6 +52,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // socket related setup
   // const [socket, setSocket] = useState<Socket | null>(null);
+  const [isFetchingData, setIsFetchingData] = useState(true);
   const [connected, setConnected] = useState<boolean>(false);
   const clientId = useRef<string | null>(null);
 
@@ -62,20 +63,26 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
   // Fetch shapes from the database on mount
   useEffect(() => {
     const fetchShapes = async () => {
+      setIsFetchingData(true);
       try {
         const { data, error } = await getShapesDB(canvasId);
         console.log("shapes fetched from server", data);
         if (!data) return;
         const cleanedShapes = data.map(
-          ({ createdAt, updatedAt, ...shape }) =>
+          ({ ...shape }) =>
             ({
               ...shape,
             }) as Shape
         );
+
+        if (error) {
+          console.log("Error fetching shapes:", error);
+        }
         setShapes(cleanedShapes);
       } catch (error) {
         console.error("Error fetching shapes:", error);
       }
+      setIsFetchingData(false);
     };
 
     fetchShapes();
@@ -147,17 +154,21 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
               const newShape = createShape(parsedData);
               switch (data.event.actionType) {
                 case "create":
-                  const newShapes = [...shapes, newShape];
-                  setShapes(newShapes);
+                  // const newShapes = [...shapes, newShape];
+                  setShapes((prevShapes) => [...prevShapes, newShape]);
                   break;
                 case "update":
                   console.log("update shape", newShape);
-                  const updatedShapes = shapes.map((shape) =>
-                    shape.id === newShape.id ? newShape : shape
+                  // const updatedShapes = shapes.map((shape) =>
+                  //   shape.id === newShape.id ? newShape : shape
+                  // );
+                  // console.log("shapes", shapes);
+                  // console.log("updated shapes", updatedShapes);
+                  setShapes((prevShapes) =>
+                    prevShapes.map((shape) =>
+                      shape.id === newShape.id ? newShape : shape
+                    )
                   );
-                  console.log("shapes", shapes);
-                  console.log("updated shapes", updatedShapes);
-                  setShapes(updatedShapes);
                   break;
               }
             } else {
@@ -175,10 +186,11 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
                 [shapeId]: eventTime,
               }));
 
-              const updatedShapes = shapes.map((shape) =>
-                shape.id === shapeId ? { ...shape, draggable: true } : shape
+              setShapes((shapes) =>
+                shapes.map((shape) =>
+                  shape.id === shapeId ? { ...shape, draggable: true } : shape
+                )
               );
-              setShapes(updatedShapes);
             }
           } else if (data.event.actionType === "make-not-draggable") {
             //TODO: to prevent other users from moving shapes, we need to set draggable to false
@@ -192,10 +204,11 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
                 [shapeId]: eventTime,
               }));
 
-              const updatedShapes = shapes.map((shape) =>
-                shape.id === shapeId ? { ...shape, deleted: true } : shape
+              setShapes((shapes) =>
+                shapes.map((shape) =>
+                  shape.id === shapeId ? { ...shape, deleted: true } : shape
+                )
               );
-              setShapes(updatedShapes);
             }
           } else if (data.event.actionType === "make-visible") {
             const shapeId = data.event.data;
@@ -207,10 +220,11 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
                 [shapeId]: eventTime,
               }));
 
-              const updatedShapes = shapes.map((shape) =>
-                shape.id === shapeId ? { ...shape, deleted: false } : shape
+              setShapes((shapes) =>
+                shapes.map((shape) =>
+                  shape.id === shapeId ? { ...shape, deleted: false } : shape
+                )
               );
-              setShapes(updatedShapes);
             }
           } else if (data.event.actionType === "move") {
             const { id, x, y } = JSON.parse(data.event.data);
@@ -221,16 +235,18 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
                 ...prev,
                 [id]: eventTime,
               }));
-              const updatedShapes = shapes.map((shape) =>
-                shape.id !== id
-                  ? shape
-                  : {
-                      ...shape,
-                      x: x || 0,
-                      y: y || 0,
-                    }
+
+              setShapes((shapes) =>
+                shapes.map((shape) =>
+                  shape.id !== id
+                    ? shape
+                    : {
+                        ...shape,
+                        x: x || 0,
+                        y: y || 0,
+                      }
+                )
               );
-              setShapes(updatedShapes);
             }
           } else if (data.event.actionType === "clear-canvas") {
             // Clear-canvas is a special case - it affects everything
@@ -257,7 +273,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     connectAndSubscribe();
 
     return () => channel && channel.close();
-  }, [clientId, setShapes, shapes, shapeVersions]);
+  }, [clientId, setShapes, shapeVersions]);
 
   const publishEvent = async (
     actionType: string,
@@ -385,32 +401,18 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Save the current state of the canvas
   const saveCanvas = () => {
-    // In a real implementation, we would save to a database
-    toast("In a real implementation, we would save to a database here.");
-
-    // Mock implementation - save to localStorage for demo
-    localStorage.setItem(`whiteboard-${canvasId}`, JSON.stringify(shapes));
-  };
-
-  // Load canvas data by room ID
-  const loadCanvas = (loadcanvasId: string) => {
-    // In a real implementation, we would load from a database
-    toast(`Loading canvas : ${loadcanvasId}`);
-
-    // Mock implementation - load from localStorage for demo
-    const savedShapes = localStorage.getItem(`whiteboard-${loadcanvasId}`);
-    if (savedShapes) {
-      const parsedShapes = JSON.parse(savedShapes) as Shape[];
-      setShapes(parsedShapes);
-      //setHistory((prev) => [...prev, parsedShapes]);
-      setHistoryIndex((prev) => prev + 1);
-    }
+    //TODO: should save image?
   };
 
   // Clear the canvas
   const clearCanvas = () => {
     //TODO: add a warning that this will clear canvas for all users
     toast("Clearing canvas for all users...");
+
+    //deleted these shapes in
+    shapes.forEach((shape) => {
+      deleteShapeDB(shape.id);
+    });
     setShapes([]);
     setHistory([]);
     setHistoryIndex(-1);
@@ -443,9 +445,9 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     userName,
     setUserName,
     connected,
+    isFetchingData,
     publishEvent,
     saveCanvas,
-    loadCanvas,
     selectedShapeId,
     setSelectedShapeId,
   };

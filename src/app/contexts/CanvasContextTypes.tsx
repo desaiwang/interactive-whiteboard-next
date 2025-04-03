@@ -80,13 +80,13 @@ export interface CanvasContextType {
   userName: string;
   setUserName: React.Dispatch<React.SetStateAction<string>>;
   connected: boolean;
+  isFetchingData: boolean;
   publishEvent: (
     actionType: string,
     data: string,
     time: string
   ) => Promise<void>;
   saveCanvas: () => void;
-  loadCanvas: (roomId: string) => void;
   selectedShapeId: string | null;
   setSelectedShapeId: React.Dispatch<React.SetStateAction<string | null>>;
 }

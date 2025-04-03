@@ -374,6 +374,16 @@
               }
             },
             {
+              "type": "key",
+              "properties": {
+                "name": "shapesByCanvasId",
+                "queryField": "listShapeByCanvasId",
+                "fields": [
+                  "canvasId"
+                ]
+              }
+            },
+            {
               "type": "auth",
               "properties": {
                 "rules": [
