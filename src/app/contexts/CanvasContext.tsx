@@ -27,6 +27,7 @@ export interface Point {
 
 export interface ShapeBase {
   id: string;
+  canvasId: string;
   tool: ToolType;
   points: number[];
   x: number;
@@ -128,6 +129,16 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
   const [connected, setConnected] = useState<boolean>(false);
   const clientId = useRef<string | null>(null);
 
+  // Computed properties for undo/redo
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  // Update undo/redo state when history changes
+  useEffect(() => {
+    setCanUndo(historyIndex >= 0);
+    setCanRedo(history.length > 0 && historyIndex < history.length - 1);
+  }, [history, historyIndex]);
+
   //set up a unique client ID for this websocket connection
   useEffect(() => {
     // Check if there's already a UUID in sessionStorage
@@ -205,6 +216,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
             );
           } else if (data.event.actionType === "clear-canvas") {
             setShapes([]);
+            setHistory([]);
             setHistoryIndex(-1);
           }
           //add handlers for different event types, mainly will change shapes
@@ -230,10 +242,6 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
       data,
     });
   };
-
-  // Computed properties for undo/redo
-  const canUndo = historyIndex >= 0;
-  const canRedo = history.length > 0 && historyIndex < history.length - 1;
 
   // Record history when shapes change
   const updateHistory = (newAction: ActionType) => {
@@ -317,6 +325,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Redo function
   const redo = () => {
+    console.log("redo", historyIndex, history.length, canRedo);
     if (!canRedo) return;
 
     const nextAction = history[historyIndex + 1];
@@ -390,6 +399,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     //TODO: add a warning that this will clear canvas for all users
     toast("Clearing canvas for all users...");
     setShapes([]);
+    setHistory([]);
     setHistoryIndex(-1);
 
     publishEvent("clear-canvas", "");
