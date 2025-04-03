@@ -21,7 +21,7 @@ import {
 } from "@/app/contexts/CanvasContextTypes";
 import { v4 as uuidv4 } from "uuid";
 import { Amplify } from "aws-amplify";
-import { useWebSocket } from "@/hooks/useWebSocket";
+import { useWebSocket } from "@/hooks/useWebSocketConnection";
 import {
   createShapeDB,
   updateShapeDB,
@@ -31,6 +31,17 @@ import {
 import outputs from "../../amplify_outputs.json";
 import CanvasLoadingOverlay from "./CanvasLoadingOverlay";
 Amplify.configure(outputs);
+Amplify.configure({
+  API: {
+    Events: {
+      endpoint:
+        "https://ll5c243i7rcnbiycgzfil25yqq.appsync-api.us-east-1.amazonaws.com/event",
+      region: "us-east-1",
+      defaultAuthMode: "apiKey",
+      apiKey: "da2-zbsn7rzsq5hxlkqjdvp7pt7tq4",
+    },
+  },
+});
 
 const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
   console.log("canvasId", canvasId);
@@ -47,7 +58,6 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     setSelectedShapeId,
     updateHistory,
     publishEvent,
-    setCanvasId,
     isFetchingData,
   } = useCanvas();
 
@@ -73,10 +83,6 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  useEffect(() => {
-    setCanvasId(canvasId); // Set the canvas ID when the component mounts
-  }, [canvasId, setCanvasId]);
 
   // Handle transformer for selected shape
   useEffect(() => {
@@ -311,7 +317,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
       JSON.stringify({ id, x, y }),
       new Date().toISOString()
     );
-  }, 100);
+  }, 50);
 
   const handleDragMove = async (
     e: KonvaEventObject<MouseEvent | TouchEvent>
@@ -348,7 +354,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
       "update",
       JSON.stringify(updatedShape),
       new Date().toISOString()
-    ); //TODO: add canvasID? Publish the new shape to the channel
+    );
 
     setShapes(
       shapes.map((shape) => (shape.id !== lastShape?.id ? shape : updatedShape))
@@ -453,46 +459,42 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
 
   return (
     <div className="whiteboard-container h-screen w-screen overflow-hidden bg-gray-50">
-      {isFetchingData ? (
-        <CanvasLoadingOverlay />
-      ) : (
-        <Stage
-          width={stageSize.width}
-          height={stageSize.height}
-          onMouseDown={async (e) => await handleMouseDown(e)}
-          onMousemove={handleMouseMove}
-          onMouseup={handleMouseUp}
-          onTouchStart={async (e) => await handleMouseDown(e)}
-          onTouchMove={handleMouseMove}
-          onTouchEnd={handleMouseUp}
-          ref={stageRef}
-          className={selectedTool === "eraser" ? "cursor-eraser" : ""}
-          style={{
-            cursor:
-              selectedTool === "select"
-                ? "default"
-                : selectedTool !== "eraser"
-                  ? "crosshair"
-                  : "",
-          }}
-        >
-          <Layer>
-            {shapes.map((shape, i) => renderShape(shape, i))}
-            <Group>
-              <Transformer
-                ref={transformerRef}
-                boundBoxFunc={(oldBox, newBox) => {
-                  // Limit size
-                  if (newBox.width < 5 || newBox.height < 5) {
-                    return oldBox;
-                  }
-                  return newBox;
-                }}
-              ></Transformer>
-            </Group>
-          </Layer>
-        </Stage>
-      )}
+      <Stage
+        width={stageSize.width}
+        height={stageSize.height}
+        onMouseDown={async (e) => await handleMouseDown(e)}
+        onMousemove={handleMouseMove}
+        onMouseup={handleMouseUp}
+        onTouchStart={async (e) => await handleMouseDown(e)}
+        onTouchMove={handleMouseMove}
+        onTouchEnd={handleMouseUp}
+        ref={stageRef}
+        className={selectedTool === "eraser" ? "cursor-eraser" : ""}
+        style={{
+          cursor:
+            selectedTool === "select"
+              ? "default"
+              : selectedTool !== "eraser"
+                ? "crosshair"
+                : "",
+        }}
+      >
+        <Layer>
+          {shapes.map((shape, i) => renderShape(shape, i))}
+          <Group>
+            <Transformer
+              ref={transformerRef}
+              boundBoxFunc={(oldBox, newBox) => {
+                // Limit size
+                if (newBox.width < 5 || newBox.height < 5) {
+                  return oldBox;
+                }
+                return newBox;
+              }}
+            ></Transformer>
+          </Group>
+        </Layer>
+      </Stage>
     </div>
   );
 };
