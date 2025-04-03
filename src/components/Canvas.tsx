@@ -21,7 +21,6 @@ import {
 } from "@/app/contexts/CanvasContextTypes";
 import { v4 as uuidv4 } from "uuid";
 import { Amplify } from "aws-amplify";
-import { useWebSocket } from "@/hooks/useWebSocketConnection";
 import {
   createShapeDB,
   updateShapeDB,
@@ -29,7 +28,7 @@ import {
 } from "@/app/_action/actions";
 
 import outputs from "../../amplify_outputs.json";
-import CanvasLoadingOverlay from "./CanvasLoadingOverlay";
+
 Amplify.configure(outputs);
 Amplify.configure({
   API: {
@@ -44,7 +43,6 @@ Amplify.configure({
 });
 
 const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
-  console.log("canvasId", canvasId);
   const stageRef = useRef<KonvaNodeComponent | null>(null);
   const transformerRef = useRef<any>(null);
   const {
@@ -58,7 +56,6 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     setSelectedShapeId,
     updateHistory,
     publishEvent,
-    isFetchingData,
   } = useCanvas();
 
   const [stageSize, setStageSize] = useState({
@@ -107,7 +104,6 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
 
   const handleMouseDown = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
     const clickedOnEmpty = e.target === e.target.getStage();
-    console.log("clicked", e.target);
 
     // Clear selection when clicking on empty canvas
     if (clickedOnEmpty) {
@@ -130,7 +126,6 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     if (selectedTool === "eraser") {
       // Handle eraser tool
       const id = e.target.id();
-      console.log("e.target", e.target);
 
       if (id) {
         publishEvent("make-invisible", id, new Date().toISOString()); // Publish the deleted shape to websocket
@@ -141,7 +136,6 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
 
         setShapes(updatedShapes); // Update state
 
-        console.log("deleted shape", id);
         updateHistory({
           type: "delete",
           shapeId: id,
@@ -186,14 +180,12 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
       type: "create",
       shapeId: id,
     };
-    console.log("newAction", newAction);
 
     updateHistory(newAction);
   };
 
   // Define this outside your handler, at component level
   const debouncedPublishMouseMove = debounce((updatedShape: Shape) => {
-    console.log("debounced mouse move called");
     publishEvent(
       "update",
       JSON.stringify(updatedShape),
@@ -204,7 +196,6 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
   //updating the shape's points or dimensions while drawing
   const handleMouseMove = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (!isDrawing.current || !lastShape || selectedTool === "select") return;
-    console.log("mousemove", e.target.x(), e.target.y());
 
     const point = e.target.getStage()?.getPointerPosition();
     if (!point) return; // if can't get pointer position, do nothing
@@ -221,7 +212,6 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
         break;
 
       case "line":
-        console.log("line", lastShape.points, point.x, point.y);
         // For line, keep start point and update end point
         updatedShape = {
           ...lastShape,
@@ -275,7 +265,6 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
       setShapes(shapesCopy);
 
       const newShape = { ...lastShape, draggable: true };
-      console.log("websocket update shape upon mouseUp", newShape);
       publishEvent(
         "update",
         JSON.stringify(newShape),
@@ -293,7 +282,6 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
 
   const handleDragStart = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (selectedTool !== "select") return; // Only allow dragging with selection tool
-    console.log("drag begin", e.target.x(), e.target.y());
     const id = e.target.id();
 
     // Find the shape in the array
@@ -302,7 +290,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
 
     const shape = shapes[shapeIndex];
 
-    //prevent other users from dragging this shape
+    // prevent other users from dragging this shape. commented out because leads to race conditions
     // publishEvent("make-not-draggable", shape.id, new Date().toISOString());
 
     setSelectedShapeId(id); // Set the selected shape ID for transformer
@@ -311,7 +299,6 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
 
   // Define this outside your handler, at component level
   const debouncedPublishMove = debounce((id: string, x: number, y: number) => {
-    console.log("debounced drag move called");
     publishEvent(
       "move",
       JSON.stringify({ id, x, y }),
@@ -323,9 +310,6 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     e: KonvaEventObject<MouseEvent | TouchEvent>
   ) => {
     if (!lastShape || selectedTool !== "select") return; //return if there's no shape to update or if not using select tool
-    console.log("!lastShape", !lastShape);
-    console.log("selectedTool", selectedTool);
-    console.log("drag move", e.target.x(), e.target.y());
     const updatedShape = {
       ...lastShape,
       x: e.target.x(),
@@ -341,7 +325,6 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
 
   const handleDragEnd = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (!lastShape || selectedTool !== "select") return; //return if there's no shape to update or if not using select tool
-    console.log("drag end", e.target.x(), e.target.y());
 
     const updatedShape = {
       ...lastShape,
@@ -349,7 +332,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
       y: e.target.y(),
       draggable: true, // Set to true after dragging
     };
-    console.log("publish update object", updatedShape);
+
     publishEvent(
       "update",
       JSON.stringify(updatedShape),
@@ -383,14 +366,6 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     if (shape.deleted)
       return null; // Skip deleted shapes
     else if (shape.tool === "pen" || shape.tool === "line") {
-      console.log("rendering rec", shape);
-      console.log(
-        "shape.draggable && selectedTool === 'select'",
-        shape.draggable,
-        selectedTool,
-        shape.draggable && selectedTool === "select"
-      );
-
       return (
         <Line
           key={shape.id || i}
@@ -411,13 +386,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
       );
     } else if (shape.tool === "rectangle") {
       const rect = shape as RectType;
-      console.log("rendering rec", rect);
-      console.log(
-        "shape.draggable && selectedTool === 'select'",
-        shape.draggable,
-        selectedTool,
-        shape.draggable && selectedTool === "select"
-      );
+
       return (
         <Rect
           key={shape.id || i}

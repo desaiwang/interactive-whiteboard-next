@@ -8,7 +8,7 @@ import React, {
   useEffect,
 } from "react";
 import { events, type EventsChannel } from "aws-amplify/data";
-import { toast } from "sonner";
+// import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { createShape } from "@/utils/create-shape";
 import {
@@ -29,7 +29,6 @@ export const CanvasProvider: React.FC<{
   canvasId: string;
   children: React.ReactNode;
 }> = ({ canvasId, children }) => {
-  console.log("provider re-rendered");
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [selectedTool, setSelectedTool] = useState<ToolType>("pen");
   const [selectedColor, setSelectedColor] = useState<string>("#000000");
@@ -72,8 +71,6 @@ export const CanvasProvider: React.FC<{
       sessionStorage.setItem("clientId", newClientId); // Store the new UUID in sessionStorage
       clientId.current = newClientId; // Set the client ID in state
     }
-
-    console.log("Client ID:", clientId.current);
   }, []);
 
   const [shapeVersions, setShapeVersions] = useState<Record<string, number>>(
@@ -91,20 +88,12 @@ export const CanvasProvider: React.FC<{
 
           // Get the event timestamp as a number for comparison
           const eventTime = new Date(data.event.time).getTime();
-          console.log(
-            "received data",
-            data.event.actionType,
-            data.event.data,
-            data.event.time
-          );
-          console.log("eventTime", eventTime);
 
           if (
             data.event.actionType === "create" ||
             data.event.actionType === "update"
           ) {
             const parsedData = JSON.parse(data.event.data);
-            console.log("parsedData", parsedData);
 
             // Check if this shape already exists in our version tracking
             const shapeId = parsedData.id;
@@ -125,12 +114,6 @@ export const CanvasProvider: React.FC<{
                   setShapes((prevShapes) => [...prevShapes, newShape]);
                   break;
                 case "update":
-                  console.log("update shape", newShape);
-                  // const updatedShapes = shapes.map((shape) =>
-                  //   shape.id === newShape.id ? newShape : shape
-                  // );
-                  // console.log("shapes", shapes);
-                  // console.log("updated shapes", updatedShapes);
                   setShapes((prevShapes) =>
                     prevShapes.map((shape) =>
                       shape.id === newShape.id ? newShape : shape
@@ -247,7 +230,6 @@ export const CanvasProvider: React.FC<{
   ) => {
     //publish events through the WebSocket channel
     if (!channel.current) {
-      console.log("reconnecting to socket channel in publishEvent");
       await events.connect(`default/${canvasId}`);
     }
     if (!channel.current) return;
@@ -348,7 +330,6 @@ export const CanvasProvider: React.FC<{
 
   // Redo function
   const redo = () => {
-    console.log("redo", historyIndex, history.length, canRedo);
     if (!canRedo) return;
 
     const nextAction = history[historyIndex + 1];

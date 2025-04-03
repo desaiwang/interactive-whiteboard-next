@@ -1,13 +1,12 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { events, type EventsChannel } from "aws-amplify/data";
+import { events } from "aws-amplify/data";
 import { getShapesDB } from "@/app/_action/actions";
 import Canvas from "@/components/Canvas";
 import { useCanvas } from "@/app/contexts/CanvasContext";
 import { Shape as ShapeType } from "@/app/contexts/CanvasContextTypes";
 import CanvasLoadingOverlay from "@/components/CanvasLoadingOverlay";
 import Toolbar from "@/components/Toolbar";
-import { AuthUser } from "@/utils/amplify-utils";
 
 import { Amplify } from "aws-amplify";
 Amplify.configure({
