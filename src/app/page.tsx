@@ -10,9 +10,6 @@ Amplify.configure(outputs);
 export default async function Home() {
   const user = await AuthGetCurrentUserServer();
 
-  const { data } = await cookiesClient.models.Canvas.list();
-  console.log("canvas data", data); // This will log the data to the console
-
   return (
     <main className="flex flex-col items-center justify-between p-24 w-1/2 m-auto font-[family-name:var(--font-geist-sans)]">
       <h1 className="text-2xl pb-10">My Canvases</h1>

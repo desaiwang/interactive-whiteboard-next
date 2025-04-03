@@ -44,6 +44,24 @@ const CanvasOverviewsFetcher = ({
     fetchShapes();
   }, [userId]);
 
+  // Handle canvas deletion
+  const handleDeleteCanvas = async (canvasId: string) => {
+    try {
+      // Show some loading state if needed
+      // setIsLoadingData(true);
+
+      // Call the server action to delete the canvas
+      await deleteCanvas(canvasId);
+
+      // Update the local state to remove the deleted canvas
+      setCanvases((prevCanvases) =>
+        prevCanvases.filter((canvas) => canvas.id !== canvasId)
+      );
+    } catch (error) {
+      console.error("Error deleting canvas:", error);
+    }
+  };
+
   return (
     <>
       {isLoadingData ? (
@@ -53,7 +71,9 @@ const CanvasOverviewsFetcher = ({
           <CanvasOverview
             key={canvas.id}
             canvas={canvas}
-            onDelete={() => deleteCanvas(canvas.id)}
+            onDelete={() => {
+              handleDeleteCanvas(canvas.id);
+            }}
           />
         ))
       )}
