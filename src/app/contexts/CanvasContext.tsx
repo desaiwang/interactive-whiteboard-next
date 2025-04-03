@@ -15,9 +15,7 @@ import {
   createShapeDB,
   updateShapeDB,
   deleteShapeDB,
-  getShapesDB,
 } from "@/app/_action/actions";
-import { create } from "lodash";
 import {
   ToolType,
   Shape,
@@ -27,9 +25,10 @@ import {
 
 const CanvasContext = createContext<CanvasContextType | undefined>(undefined);
 
-export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const CanvasProvider: React.FC<{
+  canvasId: string;
+  children: React.ReactNode;
+}> = ({ canvasId, children }) => {
   console.log("provider re-rendered");
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [selectedTool, setSelectedTool] = useState<ToolType>("pen");
@@ -37,11 +36,11 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
   const [strokeWidth, setStrokeWidth] = useState<number>(5);
   const isDrawing = useRef<boolean>(false);
 
-  // Room and user information
-  const [canvasId, setCanvasId] = useState<string>("default/canvas");
+  // Channel and user information
   const [userName, setUserName] = useState<string>(
     "User-" + Math.floor(Math.random() * 1000)
   );
+  const channel = useRef<EventsChannel | null>(null);
 
   // History for undo/redo
   const [history, setHistory] = useState<ActionType[]>([]);
@@ -49,44 +48,11 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Shape selection for moving and editing
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
-
-  // socket related setup
-  // const [socket, setSocket] = useState<Socket | null>(null);
-  const [isFetchingData, setIsFetchingData] = useState(true);
-  const [connected, setConnected] = useState<boolean>(false);
   const clientId = useRef<string | null>(null);
 
   // Computed properties for undo/redo
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
-
-  // Fetch shapes from the database on mount
-  useEffect(() => {
-    const fetchShapes = async () => {
-      setIsFetchingData(true);
-      try {
-        const { data, error } = await getShapesDB(canvasId);
-        console.log("shapes fetched from server", data);
-        if (!data) return;
-        const cleanedShapes = data.map(
-          ({ ...shape }) =>
-            ({
-              ...shape,
-            }) as Shape
-        );
-
-        if (error) {
-          console.log("Error fetching shapes:", error);
-        }
-        setShapes(cleanedShapes);
-      } catch (error) {
-        console.error("Error fetching shapes:", error);
-      }
-      setIsFetchingData(false);
-    };
-
-    fetchShapes();
-  }, [canvasId]);
 
   // Update undo/redo state when history changes
   useEffect(() => {
@@ -114,10 +80,11 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     {}
   );
 
+  //set up connection to websocket channel to post events
   useEffect(() => {
     let channel: EventsChannel;
     const connectAndSubscribe = async () => {
-      channel = await events.connect("default/canvas");
+      channel = await events.connect(`default/${canvasId}`);
       channel.subscribe({
         next: (data) => {
           if (data.event.clientId === clientId.current) return; // Ignore own events
@@ -266,14 +233,12 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
         },
         error: (err) => console.error("error", err),
       });
-      setConnected(true);
-      toast("websocket connected.");
     };
 
     connectAndSubscribe();
 
     return () => channel && channel.close();
-  }, [clientId, setShapes, shapeVersions]);
+  }, [clientId, setShapes, shapeVersions, canvasId]);
 
   const publishEvent = async (
     actionType: string,
@@ -281,8 +246,12 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     time: string
   ) => {
     //publish events through the WebSocket channel
-    const channel = await events.connect("default/canvas");
-    await channel.publish({
+    if (!channel.current) {
+      console.log("reconnecting to socket channel in publishEvent");
+      await events.connect(`default/${canvasId}`);
+    }
+    if (!channel.current) return;
+    await channel.current.publish({
       actionType,
       clientId: clientId.current || "",
       data,
@@ -407,7 +376,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
   // Clear the canvas
   const clearCanvas = () => {
     //TODO: add a warning that this will clear canvas for all users
-    toast("Clearing canvas for all users...");
+    //toast("Clearing canvas for all users...");
 
     //deleted these shapes in
     shapes.forEach((shape) => {
@@ -440,12 +409,9 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     undo,
     redo,
     clearCanvas,
-    canvasId,
-    setCanvasId,
     userName,
     setUserName,
-    connected,
-    isFetchingData,
+    channel,
     publishEvent,
     saveCanvas,
     selectedShapeId,
