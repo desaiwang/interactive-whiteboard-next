@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
   Stage,
   Layer,
@@ -10,7 +10,8 @@ import {
   Group,
 } from "react-konva";
 import { debounce } from "lodash";
-import { KonvaEventObject, KonvaNodeComponent } from "konva/lib/Node";
+import { KonvaEventObject } from "konva/lib/Node";
+import Konva from "konva";
 import { useCanvas } from "@/app/contexts/CanvasContext";
 import {
   Shape,
@@ -43,8 +44,8 @@ Amplify.configure({
 });
 
 const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
-  const stageRef = useRef<KonvaNodeComponent | null>(null);
-  const transformerRef = useRef<any>(null);
+  const stageRef = useRef<Konva.Stage | null>(null);
+  const transformerRef = useRef<Konva.Transformer>(null);
   const {
     shapes,
     setShapes,
@@ -86,19 +87,21 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     if (selectedShapeId && transformerRef.current) {
       // Find selected node by id
       const stage = stageRef.current;
+      if (!stage) return; // If stage is not available, do nothing)
+
       const selectedNode = stage.findOne("#" + selectedShapeId);
 
       // Attach transformer to selected node
       if (selectedNode) {
         transformerRef.current.nodes([selectedNode]);
-        transformerRef.current.getLayer().batchDraw();
+        transformerRef.current.getLayer()?.batchDraw();
       } else {
         transformerRef.current.nodes([]);
-        transformerRef.current.getLayer().batchDraw();
+        transformerRef.current.getLayer()?.batchDraw();
       }
     } else if (transformerRef.current) {
       transformerRef.current.nodes([]);
-      transformerRef.current.getLayer().batchDraw();
+      transformerRef.current.getLayer()?.batchDraw();
     }
   }, [selectedShapeId, shapes]);
 

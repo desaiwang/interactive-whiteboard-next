@@ -1,4 +1,9 @@
-import { Shape, Rectangle, Circle, Line } from "@/app/contexts/CanvasContext";
+import {
+  Shape,
+  Rectangle,
+  Circle,
+  Line,
+} from "@/app/contexts/CanvasContextTypes";
 
 /**
  * Helper function to create shapes from JSON-like data.
@@ -10,7 +15,7 @@ import { Shape, Rectangle, Circle, Line } from "@/app/contexts/CanvasContext";
  * @param shapeData - The JSON-like data containing properties to define the shape.
  * @returns A shape object corresponding to the specified tool in the input data.
  */
-export function createShape(shapeData: any) {
+export function createShape(shapeData: Shape) {
   //common properties
   const baseShape: Shape = {
     id: shapeData.id,

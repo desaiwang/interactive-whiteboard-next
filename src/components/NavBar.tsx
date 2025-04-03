@@ -49,7 +49,7 @@ export default function NavBar({ isSignedIn }: { isSignedIn: boolean }) {
       route.loggedIn === isAuthenticated || route.loggedIn === undefined
   );
   return (
-    <div className="flex flex-row justify-between align-center p-16">
+    <div className="flex flex-row justify-between align-center p-8">
       <div className="flex flex-row gap-4">
         {routes.map((route) => (
           <Link key={route.href} href={route.href}>

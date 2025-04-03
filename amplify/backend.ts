@@ -18,8 +18,7 @@ const backend = defineBackend({
   data,
 });
 
-//AppSync Events for Realtime Changes
-
+//AppSync Events (Web Socket) for Realtime Changes
 // create a new stack for Event API resources:
 const customResources = backend.createStack("custom-resources");
 

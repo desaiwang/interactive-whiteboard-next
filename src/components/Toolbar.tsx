@@ -20,6 +20,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useCanvas } from "@/app/contexts/CanvasContext";
+import { ToolType } from "@/app/contexts/CanvasContextTypes";
 import {
   Pencil,
   MousePointer,
@@ -78,7 +79,9 @@ export const Toolbar: React.FC = () => {
                   variant={selectedTool === tool.value ? "default" : "outline"}
                   size="icon"
                   className={`w-10 h-10 ${
-                    selectedTool === tool.value ? "bg-[#6366f1] text-white" : ""
+                    selectedTool === tool.value
+                      ? "bg-[#047d95] hover:bg-[#005566] text-white"
+                      : ""
                   }`}
                   onClick={() => setSelectedTool(tool.value as ToolType)}
                 >

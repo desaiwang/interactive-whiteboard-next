@@ -2,12 +2,12 @@ import React from "react";
 import { cookiesClient } from "@/utils/amplify-utils";
 // import Post from "@/components/Post";
 // import { onDeletePost } from "./_action/actions";
-import { AuthGetCurrentUserServer } from "@/utils/amplify-utils";
-import PostList from "@/components/PostList";
+//import { AuthGetCurrentUserServer } from "@/utils/amplify-utils";
+//import PostList from "@/components/PostList";
 // import { Schema } from "@/../amplify/data/resource";
 
 export default async function Home() {
-  const user = await AuthGetCurrentUserServer();
+  //const user = await AuthGetCurrentUserServer();
 
   const { data: shapes } = await cookiesClient.models.Shape.list({
     // selectionSet: ["id", "canvasId", "tool", "x", "y", "points", "stroke", "createdAt"],

@@ -26,10 +26,10 @@ Amplify.configure({
  */
 const ShapesFetcher = ({
   canvasId,
-  user,
+  //user,
 }: {
   canvasId: string;
-  user: AuthUser | null;
+  //user: AuthUser | null;
 }) => {
   const { setShapes, channel } = useCanvas();
   const [isLoadingData, setIsLoadingData] = useState(true);
