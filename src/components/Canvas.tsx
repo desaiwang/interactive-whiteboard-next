@@ -141,7 +141,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
       console.log("e.target", e.target);
 
       if (id) {
-        publishEvent("make-invisible", id); // Publish the deleted shape to websocket
+        publishEvent("make-invisible", id, new Date().toISOString()); // Publish the deleted shape to websocket
 
         const updatedShapes = shapes.map((shape) =>
           shape.id === id ? { ...shape, deleted: true } : shape
@@ -184,7 +184,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
 
     //broadcast change
     const shapeJson = JSON.stringify(newShape);
-    publishEvent("create", shapeJson); //TODO: add canvasID? Publish the new shape to the channel
+    publishEvent("create", shapeJson, new Date().toISOString()); //TODO: add canvasID? Publish the new shape to the channel
 
     // Add the new shape to the shapes array
     setShapes((prevShapes) => [...prevShapes, newShape]);
@@ -257,7 +257,11 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
 
     // Update the last shape reference
     setLastShape(updatedShape);
-    publishEvent("update", JSON.stringify(updatedShape)); // Publish the updated shape to the channel
+    publishEvent(
+      "update",
+      JSON.stringify(updatedShape),
+      new Date().toISOString()
+    ); // Publish the updated shape to the channel
   };
 
   //finish drawing the shape
@@ -274,7 +278,12 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
       setShapes(shapesCopy);
 
       const newShape = { ...lastShape, draggable: true };
-      publishEvent("update", JSON.stringify(newShape)); //TODO: add canvasID? Publish the new shape to the channel
+      console.log("websocket update shape", newShape);
+      publishEvent(
+        "update",
+        JSON.stringify(newShape),
+        new Date().toISOString()
+      ); //TODO: add canvasID? Publish the new shape to the channel
 
       // Send shape to server
       createShapeDB(newShape);
@@ -297,27 +306,36 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     const shape = shapes[shapeIndex];
 
     //prevent other users from dragging this shape
-    // publishEvent("make-not-draggable", shape.id);
+    // publishEvent("make-not-draggable", shape.id, new Date().toISOString());
 
     setSelectedShapeId(id); // Set the selected shape ID for transformer
     setLastShape(shape); // Store the shape being dragged
   };
 
+  // Define this outside your handler, at component level
+  const debouncedPublishMove = debounce((id: string, x: number, y: number) => {
+    console.log("debounced drag move called");
+    publishEvent(
+      "move",
+      JSON.stringify({ id, x, y }),
+      new Date().toISOString()
+    );
+  }, 100);
+
   const handleDragMove = async (
     e: KonvaEventObject<MouseEvent | TouchEvent>
   ) => {
-    console.log("drag move", e.target.x(), e.target.y());
     if (!lastShape || selectedTool !== "select") return; //return if there's no shape to update or if not using select tool
-
+    console.log("!lastShape", !lastShape);
+    console.log("selectedTool", selectedTool);
+    console.log("drag move", e.target.x(), e.target.y());
     const updatedShape = {
       ...lastShape,
       x: e.target.x(),
       y: e.target.y(),
     };
 
-    debounce((id: string, x: number, y: number) => {
-      publishEvent("move", JSON.stringify({ id, x, y }));
-    }, 100);
+    debouncedPublishMove(lastShape.id, updatedShape.x, updatedShape.y);
 
     setShapes(
       shapes.map((shape) => (shape.id !== lastShape?.id ? shape : updatedShape))
@@ -335,7 +353,11 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
       draggable: true, // Set to true after dragging
     };
     console.log("publish update object", updatedShape);
-    publishEvent("update", JSON.stringify(updatedShape)); //TODO: add canvasID? Publish the new shape to the channel
+    publishEvent(
+      "update",
+      JSON.stringify(updatedShape),
+      new Date().toISOString()
+    ); //TODO: add canvasID? Publish the new shape to the channel
 
     setShapes(
       shapes.map((shape) => (shape.id !== lastShape?.id ? shape : updatedShape))
@@ -364,6 +386,14 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     if (shape.deleted)
       return null; // Skip deleted shapes
     else if (shape.tool === "pen" || shape.tool === "line") {
+      console.log("rendering rec", shape);
+      console.log(
+        "shape.draggable && selectedTool === 'select'",
+        shape.draggable,
+        selectedTool,
+        shape.draggable && selectedTool === "select"
+      );
+
       return (
         <Line
           key={shape.id || i}

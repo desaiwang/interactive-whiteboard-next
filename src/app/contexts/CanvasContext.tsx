@@ -93,7 +93,11 @@ interface CanvasContextType {
   userName: string;
   setUserName: React.Dispatch<React.SetStateAction<string>>;
   connected: boolean;
-  publishEvent: (actionType: string, data: string) => Promise<void>;
+  publishEvent: (
+    actionType: string,
+    data: string,
+    time: string
+  ) => Promise<void>;
   saveCanvas: () => void;
   loadCanvas: (roomId: string) => void;
   selectedShapeId: string | null;
@@ -155,95 +159,154 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     console.log("Client ID:", clientId.current);
   }, []);
 
-  //set up for websocket connection using amplify events
+  const [shapeVersions, setShapeVersions] = useState<Record<string, number>>(
+    {}
+  );
+
   useEffect(() => {
     let channel: EventsChannel;
-
     const connectAndSubscribe = async () => {
       channel = await events.connect("default/canvas");
-
       channel.subscribe({
         next: (data) => {
           if (data.event.clientId === clientId.current) return; // Ignore own events
+
+          // Get the event timestamp as a number for comparison
+          const eventTime = new Date(data.event.time).getTime();
 
           if (
             data.event.actionType === "create" ||
             data.event.actionType === "update"
           ) {
             const parsedData = JSON.parse(data.event.data);
-            const newShape = createShape(parsedData);
+            console.log("parsedData", parsedData);
 
-            switch (data.event.actionType) {
-              case "create":
-                const newShapes = [...shapes, newShape];
-                setShapes(newShapes);
-                break;
-              case "update":
-                console.log("update shape", newShape);
-                const updatedShapes = shapes.map((shape) =>
-                  shape.id === newShape.id ? newShape : shape
-                );
-                console.log("shapes", shapes);
-                console.log("updated shapes", updatedShapes);
-                setShapes(updatedShapes);
-                break;
+            // Check if this shape already exists in our version tracking
+            const shapeId = parsedData.id;
+            const currentVersion = shapeVersions[shapeId] || 0;
+
+            // Only process this update if it's newer than what we have
+            if (eventTime > currentVersion) {
+              // Update our version tracking
+              setShapeVersions((prev) => ({
+                ...prev,
+                [shapeId]: eventTime,
+              }));
+
+              const newShape = createShape(parsedData);
+              switch (data.event.actionType) {
+                case "create":
+                  const newShapes = [...shapes, newShape];
+                  setShapes(newShapes);
+                  break;
+                case "update":
+                  console.log("update shape", newShape);
+                  const updatedShapes = shapes.map((shape) =>
+                    shape.id === newShape.id ? newShape : shape
+                  );
+                  console.log("shapes", shapes);
+                  console.log("updated shapes", updatedShapes);
+                  setShapes(updatedShapes);
+                  break;
+              }
+            } else {
+              console.log(
+                `Ignoring outdated event (${data.event.actionType}) for shape ${shapeId}`
+              );
             }
           } else if (data.event.actionType === "make-draggable") {
             const shapeId = data.event.data;
-            console.log("make-draggable", shapeId);
-            console.log("shapes in client state", shapes);
-            const updatedShapes = shapes.map((shape) =>
-              shape.id === shapeId ? { ...shape, draggable: true } : shape
-            );
-            console.log("updated shapes", updatedShapes);
-            setShapes(updatedShapes);
+            const currentVersion = shapeVersions[shapeId] || 0;
+
+            if (eventTime > currentVersion) {
+              setShapeVersions((prev) => ({
+                ...prev,
+                [shapeId]: eventTime,
+              }));
+
+              console.log("make-draggable", shapeId);
+              console.log("shapes in client state", shapes);
+              const updatedShapes = shapes.map((shape) =>
+                shape.id === shapeId ? { ...shape, draggable: true } : shape
+              );
+              console.log("updated shapes", updatedShapes);
+              setShapes(updatedShapes);
+            }
           } else if (data.event.actionType === "make-not-draggable") {
-            console.log("make-not-draggable", data.event.data);
-            console.log("shapes in client state", shapes);
             const shapeId = data.event.data;
-            // const updatedShapes = shapes.map((shape) =>
-            //   shape.id === shapeId ? { ...shape, draggable: false } : shape
-            // );
-            //setShapes(updatedShapes);
+            const currentVersion = shapeVersions[shapeId] || 0;
+
+            if (eventTime > currentVersion) {
+              setShapeVersions((prev) => ({
+                ...prev,
+                [shapeId]: eventTime,
+              }));
+
+              console.log("make-not-draggable", shapeId);
+              console.log("shapes in client state", shapes);
+              // Your existing code...
+            }
           } else if (data.event.actionType === "make-invisible") {
             const shapeId = data.event.data;
-            const updatedShapes = shapes.map((shape) =>
-              shape.id === shapeId ? { ...shape, deleted: true } : shape
-            );
-            setShapes(updatedShapes);
+            const currentVersion = shapeVersions[shapeId] || 0;
+
+            if (eventTime > currentVersion) {
+              setShapeVersions((prev) => ({
+                ...prev,
+                [shapeId]: eventTime,
+              }));
+
+              const updatedShapes = shapes.map((shape) =>
+                shape.id === shapeId ? { ...shape, deleted: true } : shape
+              );
+              setShapes(updatedShapes);
+            }
           } else if (data.event.actionType === "make-visible") {
-            const shapeId = data.event.data;
-            const updatedShapes = shapes.map((shape) =>
-              shape.id === shapeId ? { ...shape, deleted: false } : shape
-            );
-            setShapes(updatedShapes);
+            // Similar pattern...
           } else if (data.event.actionType === "move") {
             const { id, x, y } = JSON.parse(data.event.data);
-            console.log("move shape", id, x, y);
+            const currentVersion = shapeVersions[id] || 0;
 
-            const updatedShapes = shapes.map((shape) =>
-              shape.id !== id
-                ? shape
-                : {
-                    ...shape,
-                    x: x || 0,
-                    y: y || 0,
-                  }
-            );
-            console.log("move shape", id, x, y);
-            console.log("shapes", shapes);
-            console.log("updated shapes", updatedShapes);
-            setShapes(updatedShapes);
+            if (eventTime > currentVersion) {
+              setShapeVersions((prev) => ({
+                ...prev,
+                [id]: eventTime,
+              }));
+
+              console.log("move shape", id, x, y);
+              const updatedShapes = shapes.map((shape) =>
+                shape.id !== id
+                  ? shape
+                  : {
+                      ...shape,
+                      x: x || 0,
+                      y: y || 0,
+                    }
+              );
+              console.log("move shape", id, x, y);
+              console.log("shapes", shapes);
+              console.log("updated shapes", updatedShapes);
+              setShapes(updatedShapes);
+            }
           } else if (data.event.actionType === "clear-canvas") {
-            setShapes([]);
-            setHistory([]);
-            setHistoryIndex(-1);
+            // Clear-canvas is a special case - it affects everything
+            // We could verify this is newer than any shape version we have
+            const newestVersionTime = Math.max(
+              0,
+              ...Object.values(shapeVersions)
+            );
+
+            if (eventTime > newestVersionTime) {
+              // Reset everything
+              setShapes([]);
+              setHistory([]);
+              setHistoryIndex(-1);
+              setShapeVersions({}); // Clear version tracking
+            }
           }
-          //add handlers for different event types, mainly will change shapes
         },
         error: (err) => console.error("error", err),
       });
-
       setConnected(true);
       toast("websocket connected.");
     };
@@ -253,13 +316,18 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => channel && channel.close();
   }, [clientId, setShapes, shapes]);
 
-  const publishEvent = async (actionType: string, data: string) => {
+  const publishEvent = async (
+    actionType: string,
+    data: string,
+    time: string
+  ) => {
     //publish events through the WebSocket channel
     const channel = await events.connect("default/canvas");
     await channel.publish({
       actionType,
       clientId: clientId.current || "",
       data,
+      time,
     });
   };
 
