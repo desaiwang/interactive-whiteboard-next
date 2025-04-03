@@ -1,3 +1,5 @@
+import { type EventsChannel } from "aws-amplify/data";
+
 // Define our shape types
 export type ToolType =
   | "select"
@@ -75,12 +77,9 @@ export interface CanvasContextType {
   undo: () => void;
   redo: () => void;
   clearCanvas: () => void;
-  canvasId: string;
-  setCanvasId: React.Dispatch<React.SetStateAction<string>>;
   userName: string;
   setUserName: React.Dispatch<React.SetStateAction<string>>;
-  connected: boolean;
-  isFetchingData: boolean;
+  channel: React.RefObject<EventsChannel | null>;
   publishEvent: (
     actionType: string,
     data: string,
