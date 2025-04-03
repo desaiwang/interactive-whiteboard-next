@@ -43,7 +43,6 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     selectedColor,
     strokeWidth,
     isDrawing,
-    isDragging,
     selectedShapeId,
     setSelectedShapeId,
     updateHistory,
@@ -114,9 +113,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     }
   }, [selectedShapeId, shapes]);
 
-  const handleMouseDown = async (
-    e: KonvaEventObject<MouseEvent | TouchEvent>
-  ) => {
+  const handleMouseDown = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
     const clickedOnEmpty = e.target === e.target.getStage();
     console.log("clicked", e.target);
 
@@ -159,20 +156,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
         }); //store action in history
 
         // delete shape from database
-        try {
-          const response = await deleteShapeDB(id);
-
-          if (!response.success) {
-            console.error(
-              "Failed to delete shape:",
-              response.errors || response.error
-            );
-          } else {
-            console.log("deleted shape from DB", id);
-          }
-        } catch (error) {
-          console.error("Unexpected error:", error);
-        }
+        deleteShapeDB(id);
       }
       return;
     }
@@ -200,7 +184,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
 
     //broadcast change
     const shapeJson = JSON.stringify(newShape);
-    await publishEvent("create", shapeJson); //TODO: add canvasID? Publish the new shape to the channel
+    publishEvent("create", shapeJson); //TODO: add canvasID? Publish the new shape to the channel
 
     // Add the new shape to the shapes array
     setShapes((prevShapes) => [...prevShapes, newShape]);
@@ -277,7 +261,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
   };
 
   //finish drawing the shape
-  const handleMouseUp = async () => {
+  const handleMouseUp = () => {
     if (selectedTool === "select") return; // Do nothing if using selection tool
     console.log("mouseup");
     isDrawing.current = false;
@@ -288,29 +272,20 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
         shape.id !== lastShape.id ? shape : { ...shape, draggable: true }
       );
       setShapes(shapesCopy);
-      await publishEvent("make-draggable", lastShape.id); //TODO: add canvasID? Publish the new shape to the channel
+
+      const newShape = { ...lastShape, draggable: true };
+      publishEvent("update", JSON.stringify(newShape)); //TODO: add canvasID? Publish the new shape to the channel
 
       // Send shape to server
-      try {
-        const response = await createShapeDB({ ...lastShape, draggable: true });
+      createShapeDB(newShape);
 
-        if (!response.success) {
-          console.error(
-            "Failed to save shape:",
-            response.errors || response.error
-          );
-        }
-      } catch (error) {
-        console.error("Unexpected error:", error);
-      }
-
-      setLastShape(null); // Clear last shape after drawing
+      //clear shape related data
+      setSelectedShapeId(null);
+      setLastShape(null);
     }
   };
 
-  const handleDragStart = async (
-    e: KonvaEventObject<MouseEvent | TouchEvent>
-  ) => {
+  const handleDragStart = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (selectedTool !== "select") return; // Only allow dragging with selection tool
     console.log("drag begin", e.target.x(), e.target.y());
     const id = e.target.id();
@@ -322,18 +297,11 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     const shape = shapes[shapeIndex];
 
     //prevent other users from dragging this shape
-    await publishEvent("make-not-draggable", shape.id);
+    // publishEvent("make-not-draggable", shape.id);
 
     setSelectedShapeId(id); // Set the selected shape ID for transformer
     setLastShape(shape); // Store the shape being dragged
   };
-
-  const debouncedPublish = useCallback(
-    debounce((id: string, x: number, y: number) => {
-      publishEvent("move", JSON.stringify({ id, x, y }));
-    }, 100), // Adjust delay as needed (100ms)
-    []
-  );
 
   const handleDragMove = async (
     e: KonvaEventObject<MouseEvent | TouchEvent>
@@ -346,16 +314,17 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
       x: e.target.x(),
       y: e.target.y(),
     };
-    debouncedPublish(lastShape.id, updatedShape.x, updatedShape.y);
+
+    debounce((id: string, x: number, y: number) => {
+      publishEvent("move", JSON.stringify({ id, x, y }));
+    }, 100);
 
     setShapes(
       shapes.map((shape) => (shape.id !== lastShape?.id ? shape : updatedShape))
     );
   };
 
-  const handleDragEnd = async (
-    e: KonvaEventObject<MouseEvent | TouchEvent>
-  ) => {
+  const handleDragEnd = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (!lastShape || selectedTool !== "select") return; //return if there's no shape to update or if not using select tool
     console.log("drag end", e.target.x(), e.target.y());
 
@@ -363,9 +332,10 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
       ...lastShape,
       x: e.target.x(),
       y: e.target.y(),
+      draggable: true, // Set to true after dragging
     };
-    console.log("make-draggable", JSON.stringify(lastShape.id));
-    await publishEvent("make-draggable", JSON.stringify(lastShape.id));
+    console.log("publish update object", updatedShape);
+    publishEvent("update", JSON.stringify(updatedShape)); //TODO: add canvasID? Publish the new shape to the channel
 
     setShapes(
       shapes.map((shape) => (shape.id !== lastShape?.id ? shape : updatedShape))
@@ -383,18 +353,11 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     updateHistory(newAction);
 
     // Send shape to server
-    try {
-      const response = await updateShapeDB(updatedShape);
+    updateShapeDB(updatedShape);
 
-      if (!response.success) {
-        console.error(
-          "Failed to update shape:",
-          response.errors || response.error
-        );
-      }
-    } catch (error) {
-      console.error("Unexpected error:", error);
-    }
+    //clear shape related data
+    setSelectedShapeId(null);
+    setLastShape(null);
   };
 
   const renderShape = (shape: Shape, i: number) => {
@@ -414,13 +377,20 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
           lineCap="round"
           lineJoin="round"
           draggable={shape.draggable && selectedTool === "select"}
-          onDragStart={async (e) => await handleDragStart(e)}
-          onDragMove={async (e) => await handleDragMove(e)}
-          onDragEnd={async (e) => await handleDragEnd(e)}
+          onDragStart={handleDragStart}
+          onDragMove={handleDragMove}
+          onDragEnd={handleDragEnd}
         />
       );
     } else if (shape.tool === "rectangle") {
       const rect = shape as RectType;
+      console.log("rendering rec", rect);
+      console.log(
+        "shape.draggable && selectedTool === 'select'",
+        shape.draggable,
+        selectedTool,
+        shape.draggable && selectedTool === "select"
+      );
       return (
         <Rect
           key={shape.id || i}
@@ -433,9 +403,9 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
           strokeWidth={shape.strokeWidth}
           fill="transparent"
           draggable={shape.draggable && selectedTool === "select"}
-          onDragStart={async (e) => await handleDragStart(e)}
-          onDragMove={async (e) => await handleDragMove(e)}
-          onDragEnd={async (e) => await handleDragEnd(e)}
+          onDragStart={handleDragStart}
+          onDragMove={handleDragMove}
+          onDragEnd={handleDragEnd}
         />
       );
     } else if (shape.tool === "circle") {
@@ -451,9 +421,9 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
           strokeWidth={shape.strokeWidth}
           fill="transparent"
           draggable={shape.draggable && selectedTool === "select"}
-          onDragStart={async (e) => await handleDragStart(e)}
-          onDragMove={async (e) => await handleDragMove(e)}
-          onDragEnd={async (e) => await handleDragEnd(e)}
+          onDragStart={handleDragStart}
+          onDragMove={handleDragMove}
+          onDragEnd={handleDragEnd}
         />
       );
     }
