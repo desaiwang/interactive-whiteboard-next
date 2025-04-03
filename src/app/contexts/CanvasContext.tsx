@@ -1,4 +1,5 @@
 "use client";
+//CanvasContext.tsx
 import React, {
   createContext,
   useState,
@@ -10,6 +11,12 @@ import { events, type EventsChannel } from "aws-amplify/data";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { createShape } from "@/utils/create-shape";
+import {
+  createShapeDB,
+  updateShapeDB,
+  deleteShapeDB,
+} from "@/app/_action/actions";
+import { create } from "lodash";
 
 // Define our shape types
 export type ToolType =
@@ -173,6 +180,13 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 
           // Get the event timestamp as a number for comparison
           const eventTime = new Date(data.event.time).getTime();
+          console.log(
+            "received data",
+            data.event.actionType,
+            data.event.data,
+            data.event.time
+          );
+          console.log("eventTime", eventTime);
 
           if (
             data.event.actionType === "create" ||
@@ -224,28 +238,13 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
                 [shapeId]: eventTime,
               }));
 
-              console.log("make-draggable", shapeId);
-              console.log("shapes in client state", shapes);
               const updatedShapes = shapes.map((shape) =>
                 shape.id === shapeId ? { ...shape, draggable: true } : shape
               );
-              console.log("updated shapes", updatedShapes);
               setShapes(updatedShapes);
             }
           } else if (data.event.actionType === "make-not-draggable") {
-            const shapeId = data.event.data;
-            const currentVersion = shapeVersions[shapeId] || 0;
-
-            if (eventTime > currentVersion) {
-              setShapeVersions((prev) => ({
-                ...prev,
-                [shapeId]: eventTime,
-              }));
-
-              console.log("make-not-draggable", shapeId);
-              console.log("shapes in client state", shapes);
-              // Your existing code...
-            }
+            //TODO: to prevent other users from moving shapes, we need to set draggable to false
           } else if (data.event.actionType === "make-invisible") {
             const shapeId = data.event.data;
             const currentVersion = shapeVersions[shapeId] || 0;
@@ -262,7 +261,20 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
               setShapes(updatedShapes);
             }
           } else if (data.event.actionType === "make-visible") {
-            // Similar pattern...
+            const shapeId = data.event.data;
+            const currentVersion = shapeVersions[shapeId] || 0;
+
+            if (eventTime > currentVersion) {
+              setShapeVersions((prev) => ({
+                ...prev,
+                [shapeId]: eventTime,
+              }));
+
+              const updatedShapes = shapes.map((shape) =>
+                shape.id === shapeId ? { ...shape, deleted: false } : shape
+              );
+              setShapes(updatedShapes);
+            }
           } else if (data.event.actionType === "move") {
             const { id, x, y } = JSON.parse(data.event.data);
             const currentVersion = shapeVersions[id] || 0;
@@ -272,8 +284,6 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
                 ...prev,
                 [id]: eventTime,
               }));
-
-              console.log("move shape", id, x, y);
               const updatedShapes = shapes.map((shape) =>
                 shape.id !== id
                   ? shape
@@ -283,14 +293,10 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
                       y: y || 0,
                     }
               );
-              console.log("move shape", id, x, y);
-              console.log("shapes", shapes);
-              console.log("updated shapes", updatedShapes);
               setShapes(updatedShapes);
             }
           } else if (data.event.actionType === "clear-canvas") {
             // Clear-canvas is a special case - it affects everything
-            // We could verify this is newer than any shape version we have
             const newestVersionTime = Math.max(
               0,
               ...Object.values(shapeVersions)
@@ -314,7 +320,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     connectAndSubscribe();
 
     return () => channel && channel.close();
-  }, [clientId, setShapes, shapes]);
+  }, [clientId, setShapes, shapes, shapeVersions]);
 
   const publishEvent = async (
     actionType: string,
@@ -343,29 +349,58 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  //OLD: manage history
-  // useEffect(() => {
-  //   // Skip on initial load
-  //   if (shapes.length === 0 && history.length === 0) return;
+  const deleteUndoRedo = (shapeId: string) => {
+    publishEvent("make-invisible", shapeId, new Date().toISOString());
+    const newShapes = shapes.map((shape) =>
+      shape.id !== shapeId ? shape : { ...shape, deleted: true }
+    );
 
-  //   // Skip if we're in the middle of an undo/redo operation
-  //   // const currentHistoryShapes = history[historyIndex] || [];
-  //   // const shapesAreEqual =
-  //   //   shapes.length === currentHistoryShapes.length &&
-  //   //   JSON.stringify(shapes) === JSON.stringify(currentHistoryShapes);
+    setShapes(newShapes);
 
-  //   // if (shapesAreEqual) return;
+    //handle Database delete as well
+    deleteShapeDB(shapeId);
+  };
 
-  //   // If we're not at the end of the history array, we need to truncate it
-  //   if (historyIndex < history.length - 1) {
-  //     setHistory((prev) => prev.slice(0, historyIndex + 1).concat([shapes]));
-  //     setHistoryIndex(historyIndex + 1);
-  //   } else {
-  //     // Add new state to history
-  //     setHistory((prev) => [...prev, [...shapes]]);
-  //     setHistoryIndex(historyIndex + 1);
-  //   }
-  // }, [shapes]);
+  const createUndoRedo = (shapeId: string) => {
+    publishEvent("make-visible", shapeId, new Date().toISOString());
+
+    const newShapes = shapes.map((shape) =>
+      shape.id !== shapeId ? shape : { ...shape, deleted: false }
+    );
+
+    setShapes(newShapes);
+
+    //find the first shape with shapeId in shapes
+    const shape = shapes.find((shape) => shape.id === shapeId);
+    if (!shape) return;
+    const newShape = { ...shape, deleted: false };
+
+    //handle Database update as well
+    createShapeDB(newShape);
+  };
+
+  const moveUndoRedo = (shapeId: string, x: number, y: number) => {
+    publishEvent(
+      "move-to",
+      JSON.stringify({
+        id: shapeId,
+        x,
+        y,
+      }),
+      new Date().toISOString()
+    );
+
+    const newShapes = shapes.map((shape) =>
+      shape.id !== shapeId ? shape : { ...shape, x, y }
+    );
+    setShapes(newShapes);
+
+    //handle Database update as well
+    const shape = shapes.find((shape) => shape.id === shapeId);
+    if (!shape) return;
+    const newShape = { ...shape, x, y };
+    updateShapeDB(newShape);
+  };
 
   // Undo function
   const undo = () => {
@@ -374,42 +409,19 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     const lastAction = history[historyIndex];
 
     if (lastAction.type === "delete") {
-      publishEvent("make-visible", lastAction.shapeId);
-      const newShapes = shapes.map((shape) =>
-        shape.id !== lastAction.shapeId ? shape : { ...shape, deleted: false }
-      );
-
-      setShapes(newShapes);
+      createUndoRedo(lastAction.shapeId);
     } else if (lastAction.type === "create") {
-      publishEvent("make-invisible", lastAction.shapeId);
-      const newShapes = shapes.map((shape) =>
-        shape.id !== lastAction.shapeId ? shape : { ...shape, deleted: true }
-      );
-      setShapes(newShapes);
+      deleteUndoRedo(lastAction.shapeId);
     } else if (lastAction.type === "move") {
-      publishEvent(
-        "move-to",
-        JSON.stringify({
-          id: lastAction.shapeId,
-          x: lastAction.from?.x || 0,
-          y: lastAction.from?.y || 0,
-        })
+      moveUndoRedo(
+        lastAction.shapeId,
+        lastAction.from?.x || 0,
+        lastAction.from?.y || 0
       );
-
-      const newShapes = shapes.map((shape) =>
-        shape.id !== lastAction.shapeId
-          ? shape
-          : { ...shape, x: lastAction.from?.x || 0, y: lastAction.from?.y || 0 }
-      );
-      setShapes(newShapes);
     }
 
     const newIndex = historyIndex - 1;
     setHistoryIndex(newIndex);
-    //setShapes([...history[newIndex]]);
-
-    // In real implementation, we would broadcast this to all users
-    // socket?.emit('canvas_update', { roomId, shapes: history[newIndex] });
   };
 
   // Redo function
@@ -419,36 +431,15 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const nextAction = history[historyIndex + 1];
     if (nextAction.type === "delete") {
-      publishEvent("make-invisible", nextAction.shapeId);
-      const newShapes = shapes.map((shape) =>
-        shape.id !== nextAction.shapeId ? shape : { ...shape, deleted: true }
-      );
-      setShapes(newShapes);
+      deleteUndoRedo(nextAction.shapeId);
     } else if (nextAction.type === "create") {
-      publishEvent("make-visible", nextAction.shapeId);
-      const newShapes = shapes.map((shape) =>
-        shape.id !== nextAction.shapeId ? shape : { ...shape, deleted: false }
-      );
-      setShapes(newShapes);
+      createUndoRedo(nextAction.shapeId);
     } else if (nextAction.type === "move") {
-      publishEvent(
-        "move-to",
-        JSON.stringify({
-          id: nextAction.shapeId,
-          x: nextAction.to?.x || 0,
-          y: nextAction.to?.y || 0,
-        })
+      moveUndoRedo(
+        nextAction.shapeId,
+        nextAction.to?.x || 0,
+        nextAction.to?.y || 0
       );
-      const newShapes = shapes.map((shape) =>
-        shape.id !== nextAction.shapeId
-          ? shape
-          : {
-              ...shape,
-              x: nextAction.to?.x || 0,
-              y: nextAction.to?.y || 0,
-            }
-      );
-      setShapes(newShapes);
     }
 
     const newIndex = historyIndex + 1;
@@ -491,7 +482,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     setHistory([]);
     setHistoryIndex(-1);
 
-    publishEvent("clear-canvas", "");
+    publishEvent("clear-canvas", "", new Date().toISOString());
   };
 
   const value = {

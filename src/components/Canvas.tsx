@@ -199,6 +199,16 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     updateHistory(newAction);
   };
 
+  // Define this outside your handler, at component level
+  const debouncedPublishMouseMove = debounce((updatedShape: Shape) => {
+    console.log("debounced mouse move called");
+    publishEvent(
+      "update",
+      JSON.stringify(updatedShape),
+      new Date().toISOString()
+    );
+  }, 100);
+
   //updating the shape's points or dimensions while drawing
   const handleMouseMove = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (!isDrawing.current || !lastShape || selectedTool === "select") return;
@@ -257,17 +267,12 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
 
     // Update the last shape reference
     setLastShape(updatedShape);
-    publishEvent(
-      "update",
-      JSON.stringify(updatedShape),
-      new Date().toISOString()
-    ); // Publish the updated shape to the channel
+    debouncedPublishMouseMove(updatedShape); // Publish the updated shape to the channel
   };
 
   //finish drawing the shape
   const handleMouseUp = () => {
     if (selectedTool === "select") return; // Do nothing if using selection tool
-    console.log("mouseup");
     isDrawing.current = false;
 
     // Set the shape to be draggable for selection after it's drawn
@@ -278,7 +283,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
       setShapes(shapesCopy);
 
       const newShape = { ...lastShape, draggable: true };
-      console.log("websocket update shape", newShape);
+      console.log("websocket update shape upon mouseUp", newShape);
       publishEvent(
         "update",
         JSON.stringify(newShape),

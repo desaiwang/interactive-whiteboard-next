@@ -173,6 +173,6 @@
   /* cursor: pointer; */
 
   cursor:
-    url(/delete.svg) 2 2,
+    url(/delete.svg) 10 10,
     auto !important;
 }
