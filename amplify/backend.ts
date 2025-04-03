@@ -29,6 +29,9 @@ const cfnEventAPI = new CfnApi(customResources, "CfnEventAPI", {
   eventConfig: {
     authProviders: [
       {
+        authType: AuthorizationType.API_KEY,
+      },
+      {
         authType: AuthorizationType.USER_POOL,
         cognitoConfig: {
           awsRegion: customResources.region,
@@ -38,13 +41,22 @@ const cfnEventAPI = new CfnApi(customResources, "CfnEventAPI", {
       },
     ],
     // configure the User Pool as the auth provider for Connect, Publish, and Subscribe operations:
-    connectionAuthModes: [{ authType: AuthorizationType.USER_POOL }],
-    defaultPublishAuthModes: [{ authType: AuthorizationType.USER_POOL }],
-    defaultSubscribeAuthModes: [{ authType: AuthorizationType.USER_POOL }],
+    connectionAuthModes: [
+      { authType: AuthorizationType.API_KEY },
+      { authType: AuthorizationType.USER_POOL },
+    ],
+    defaultPublishAuthModes: [
+      { authType: AuthorizationType.API_KEY },
+      { authType: AuthorizationType.USER_POOL },
+    ],
+    defaultSubscribeAuthModes: [
+      { authType: AuthorizationType.API_KEY },
+      { authType: AuthorizationType.USER_POOL },
+    ],
   },
 });
 
-// create a default namespace for our Event API:
+// create a default namespace for our Event API, can save as namespace if need to access elsewhere
 const namespace = new CfnChannelNamespace(
   customResources,
   "CfnEventAPINamespace",
@@ -54,8 +66,7 @@ const namespace = new CfnChannelNamespace(
   }
 );
 
-// attach a policy to the authenticated user role in our User Pool to grant access to the Event API:
-backend.auth.resources.authenticatedUserIamRole.attachInlinePolicy(
+backend.auth.resources.unauthenticatedUserIamRole.attachInlinePolicy(
   new Policy(customResources, "AppSyncEventPolicy", {
     statements: [
       new PolicyStatement({
@@ -70,7 +81,8 @@ backend.auth.resources.authenticatedUserIamRole.attachInlinePolicy(
   })
 );
 
-// finally, add the Event API configuration to amplify_outputs:
+// finally, add the Event API configuration to amplify_outputs
+//by default this uses USER_POOL auth
 backend.addOutput({
   custom: {
     events: {

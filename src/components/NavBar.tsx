@@ -41,7 +41,7 @@ export default function NavBar({ isSignedIn }: { isSignedIn: boolean }) {
 
   const defaultRoutes = [
     { href: "/", label: "Home" },
-    { href: "/add", label: "Add Title", loggedIn: true },
+    { href: "/add", label: "My Canvases", loggedIn: true },
   ];
 
   const routes = defaultRoutes.filter(
@@ -64,7 +64,7 @@ export default function NavBar({ isSignedIn }: { isSignedIn: boolean }) {
         className="mr-4"
         onClick={signOutSignIn}
       >
-        {isAuthenticated ? "Sign Out" : "Sign In"}
+        {isAuthenticated ? "Sign Out" : "Sign In To Save Canvas"}
       </Button>
     </div>
   );

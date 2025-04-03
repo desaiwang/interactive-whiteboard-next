@@ -218,8 +218,8 @@ export const Toolbar: React.FC = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>Clear Canvas</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to clear the canvas? This action cannot be
-                undone and will remove all drawings for all users in this room.
+                Are you sure you want to clear this canvas? This action cannot
+                be undone and will remove all drawings for all users.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
