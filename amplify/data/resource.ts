@@ -56,6 +56,13 @@ const schema = a.schema({
       allow.publicApiKey().to(["read", "create", "update"]), //don't let guests delete records
       allow.authenticated(),
     ]),
+
+  // BatchDeleteShape: a.mutation().arguments({ canvasId: a.string().array() })
+  //   .returns(a.ref("Shape").array())
+  //   .authorization(allow => [allow.publicApiKey(), allow.authenticated()])
+  //   .handler(a.handler.custom({
+  //     dataSource: a.ref('Post'), entry:'./BatchDeleteShapeHandler.js'
+  // }))
 });
 
 //TODO: bring back when needed

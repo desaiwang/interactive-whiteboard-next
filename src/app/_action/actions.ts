@@ -78,3 +78,22 @@ export async function createShapeDB(shape: ShapeType) {
     return { success: false, error };
   }
 }
+
+export async function updateShapeDB(shape: ShapeType) {
+  try {
+    const { data, errors } = await cookiesClient.models.Shape.update(shape, {
+      authMode: "apiKey",
+    });
+
+    if (errors) {
+      console.error("Error creating shape:", errors);
+      return { success: false, errors };
+    }
+
+    console.log("Shape created:", data);
+    return { success: true, data };
+  } catch (error) {
+    console.error("Server error:", error);
+    return { success: false, error };
+  }
+}

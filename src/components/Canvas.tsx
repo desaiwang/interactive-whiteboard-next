@@ -22,7 +22,7 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { Amplify } from "aws-amplify";
 import { useWebSocket } from "@/hooks/useWebSocket";
-import { createShapeDB } from "@/app/_action/actions";
+import { createShapeDB, updateShapeDB } from "@/app/_action/actions";
 
 import outputs from "../../amplify_outputs.json";
 Amplify.configure(outputs);
@@ -268,7 +268,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
 
       // Send shape to server
       try {
-        const response = await createShapeDB(lastShape);
+        const response = await createShapeDB({ ...lastShape, draggable: true });
 
         if (!response.success) {
           console.error(
@@ -284,7 +284,9 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     }
   };
 
-  const handleDragEnd = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
+  const handleDragEnd = async (
+    e: KonvaEventObject<MouseEvent | TouchEvent>
+  ) => {
     const id = e.target.id();
 
     // Find the shape in the array
@@ -311,6 +313,20 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     };
 
     updateHistory(newAction);
+
+    // Send shape to server
+    try {
+      const response = await updateShapeDB(updatedShape);
+
+      if (!response.success) {
+        console.error(
+          "Failed to update shape:",
+          response.errors || response.error
+        );
+      }
+    } catch (error) {
+      console.error("Unexpected error:", error);
+    }
   };
 
   const renderShape = (shape: Shape, i: number) => {
@@ -331,7 +347,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
           lineJoin="round"
           draggable={shape.draggable && selectedTool === "select"}
           // onDragMove={(e) => console.log("x, y", e.target.x(), e.target.y())}
-          onDragEnd={handleDragEnd}
+          onDragEnd={async (e) => await handleDragEnd(e)}
         />
       );
     } else if (shape.tool === "rectangle") {
@@ -348,7 +364,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
           strokeWidth={shape.strokeWidth}
           fill="transparent"
           draggable={shape.draggable && selectedTool === "select"}
-          onDragEnd={handleDragEnd}
+          onDragEnd={async (e) => await handleDragEnd(e)}
         />
       );
     } else if (shape.tool === "circle") {
@@ -364,7 +380,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
           strokeWidth={shape.strokeWidth}
           fill="transparent"
           draggable={shape.draggable && selectedTool === "select"}
-          onDragEnd={handleDragEnd}
+          onDragEnd={async (e) => await handleDragEnd(e)}
         />
       );
     }
