@@ -90,7 +90,27 @@ export async function updateShapeDB(shape: ShapeType) {
       return { success: false, errors };
     }
 
-    console.log("Shape created:", data);
+    console.log("Shape updated:", data);
+    return { success: true, data };
+  } catch (error) {
+    console.error("Server error:", error);
+    return { success: false, error };
+  }
+}
+
+export async function deleteShapeDB(id: string) {
+  try {
+    const { data, errors } = await cookiesClient.models.Shape.delete(
+      { id },
+      { authMode: "apiKey" }
+    );
+
+    if (errors) {
+      console.error("Error deleting shape:", errors);
+      return { success: false, errors };
+    }
+
+    console.log("Shape deleted:", data);
     return { success: true, data };
   } catch (error) {
     console.error("Server error:", error);

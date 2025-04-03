@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import {
   Stage,
   Layer,
@@ -9,6 +9,7 @@ import {
   Transformer,
   Group,
 } from "react-konva";
+import { debounce } from "lodash";
 import { KonvaEventObject, KonvaNodeComponent } from "konva/lib/Node";
 import {
   useCanvas,
@@ -22,7 +23,11 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { Amplify } from "aws-amplify";
 import { useWebSocket } from "@/hooks/useWebSocket";
-import { createShapeDB, updateShapeDB } from "@/app/_action/actions";
+import {
+  createShapeDB,
+  updateShapeDB,
+  deleteShapeDB,
+} from "@/app/_action/actions";
 
 import outputs from "../../amplify_outputs.json";
 Amplify.configure(outputs);
@@ -38,6 +43,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     selectedColor,
     strokeWidth,
     isDrawing,
+    isDragging,
     selectedShapeId,
     setSelectedShapeId,
     updateHistory,
@@ -112,7 +118,7 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     e: KonvaEventObject<MouseEvent | TouchEvent>
   ) => {
     const clickedOnEmpty = e.target === e.target.getStage();
-    //console.log("clicked", e.target);
+    console.log("clicked", e.target);
 
     // Clear selection when clicking on empty canvas
     if (clickedOnEmpty) {
@@ -151,6 +157,22 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
           type: "delete",
           shapeId: id,
         }); //store action in history
+
+        // delete shape from database
+        try {
+          const response = await deleteShapeDB(id);
+
+          if (!response.success) {
+            console.error(
+              "Failed to delete shape:",
+              response.errors || response.error
+            );
+          } else {
+            console.log("deleted shape from DB", id);
+          }
+        } catch (error) {
+          console.error("Unexpected error:", error);
+        }
       }
       return;
     }
@@ -194,9 +216,9 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
   };
 
   //updating the shape's points or dimensions while drawing
-  // Updating the shape's points or dimensions while drawing
   const handleMouseMove = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
-    if (!isDrawing.current || !lastShape) return;
+    if (!isDrawing.current || !lastShape || selectedTool === "select") return;
+    console.log("mousemove", e.target.x(), e.target.y());
 
     const point = e.target.getStage()?.getPointerPosition();
     if (!point) return; // if can't get pointer position, do nothing
@@ -256,6 +278,8 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
 
   //finish drawing the shape
   const handleMouseUp = async () => {
+    if (selectedTool === "select") return; // Do nothing if using selection tool
+    console.log("mouseup");
     isDrawing.current = false;
 
     // Set the shape to be draggable for selection after it's drawn
@@ -284,9 +308,11 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     }
   };
 
-  const handleDragEnd = async (
+  const handleDragStart = async (
     e: KonvaEventObject<MouseEvent | TouchEvent>
   ) => {
+    if (selectedTool !== "select") return; // Only allow dragging with selection tool
+    console.log("drag begin", e.target.x(), e.target.y());
     const id = e.target.id();
 
     // Find the shape in the array
@@ -294,23 +320,65 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
     if (shapeIndex === -1) return;
 
     const shape = shapes[shapeIndex];
-    const shapesCopy = [...shapes];
+
+    //prevent other users from dragging this shape
+    await publishEvent("make-not-draggable", shape.id);
+
+    setSelectedShapeId(id); // Set the selected shape ID for transformer
+    setLastShape(shape); // Store the shape being dragged
+  };
+
+  const debouncedPublish = useCallback(
+    debounce((id: string, x: number, y: number) => {
+      publishEvent("move", JSON.stringify({ id, x, y }));
+    }, 100), // Adjust delay as needed (100ms)
+    []
+  );
+
+  const handleDragMove = async (
+    e: KonvaEventObject<MouseEvent | TouchEvent>
+  ) => {
+    console.log("drag move", e.target.x(), e.target.y());
+    if (!lastShape || selectedTool !== "select") return; //return if there's no shape to update or if not using select tool
 
     const updatedShape = {
-      ...shape,
+      ...lastShape,
       x: e.target.x(),
       y: e.target.y(),
     };
-    shapesCopy[shapeIndex] = updatedShape;
+    debouncedPublish(lastShape.id, updatedShape.x, updatedShape.y);
 
-    setShapes(shapesCopy);
+    setShapes(
+      shapes.map((shape) => (shape.id !== lastShape?.id ? shape : updatedShape))
+    );
+  };
+
+  const handleDragEnd = async (
+    e: KonvaEventObject<MouseEvent | TouchEvent>
+  ) => {
+    if (!lastShape || selectedTool !== "select") return; //return if there's no shape to update or if not using select tool
+    console.log("drag end", e.target.x(), e.target.y());
+
+    const updatedShape = {
+      ...lastShape,
+      x: e.target.x(),
+      y: e.target.y(),
+    };
+    console.log("make-draggable", JSON.stringify(lastShape.id));
+    await publishEvent("make-draggable", JSON.stringify(lastShape.id));
+
+    setShapes(
+      shapes.map((shape) => (shape.id !== lastShape?.id ? shape : updatedShape))
+    );
 
     const newAction: ActionType = {
       type: "move",
-      shapeId: id,
-      from: { x: shape.x, y: shape.y },
-      to: { x: e.target.x(), y: e.target.y() },
+      shapeId: lastShape.id,
+      from: { x: lastShape.x, y: lastShape.y },
+      to: { x: updatedShape.x, y: updatedShape.x },
     };
+
+    //TODO: updateDatabase
 
     updateHistory(newAction);
 
@@ -346,7 +414,8 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
           lineCap="round"
           lineJoin="round"
           draggable={shape.draggable && selectedTool === "select"}
-          // onDragMove={(e) => console.log("x, y", e.target.x(), e.target.y())}
+          onDragStart={async (e) => await handleDragStart(e)}
+          onDragMove={async (e) => await handleDragMove(e)}
           onDragEnd={async (e) => await handleDragEnd(e)}
         />
       );
@@ -364,6 +433,8 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
           strokeWidth={shape.strokeWidth}
           fill="transparent"
           draggable={shape.draggable && selectedTool === "select"}
+          onDragStart={async (e) => await handleDragStart(e)}
+          onDragMove={async (e) => await handleDragMove(e)}
           onDragEnd={async (e) => await handleDragEnd(e)}
         />
       );
@@ -380,6 +451,8 @@ const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
           strokeWidth={shape.strokeWidth}
           fill="transparent"
           draggable={shape.draggable && selectedTool === "select"}
+          onDragStart={async (e) => await handleDragStart(e)}
+          onDragMove={async (e) => await handleDragMove(e)}
           onDragEnd={async (e) => await handleDragEnd(e)}
         />
       );

@@ -53,7 +53,7 @@ const schema = a.schema({
       radius: a.float(),
     })
     .authorization((allow) => [
-      allow.publicApiKey().to(["read", "create", "update"]), //don't let guests delete records
+      allow.publicApiKey(), //TODO: prevent database delete or not?
       allow.authenticated(),
     ]),
 

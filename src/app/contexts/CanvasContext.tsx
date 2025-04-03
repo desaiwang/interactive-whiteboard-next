@@ -78,6 +78,7 @@ interface CanvasContextType {
   strokeWidth: number;
   setStrokeWidth: React.Dispatch<React.SetStateAction<number>>;
   isDrawing: React.RefObject<boolean>;
+  isDragging: React.RefObject<boolean>;
   historyIndex: number;
   setHistoryIndex: React.Dispatch<React.SetStateAction<number>>;
   history: ActionType[];
@@ -110,6 +111,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
   const [selectedColor, setSelectedColor] = useState<string>("#000000");
   const [strokeWidth, setStrokeWidth] = useState<number>(5);
   const isDrawing = useRef<boolean>(false);
+  const isDragging = useRef<boolean>(false);
 
   // Room and user information
   const [roomId, setRoomId] = useState<string>("default-room");
@@ -187,10 +189,20 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
             }
           } else if (data.event.actionType === "make-draggable") {
             const shapeId = data.event.data;
+            console.log("make-draggable", shapeId);
+            console.log("shapes in client state", shapes);
             const updatedShapes = shapes.map((shape) =>
               shape.id === shapeId ? { ...shape, draggable: true } : shape
             );
             setShapes(updatedShapes);
+          } else if (data.event.actionType === "make-not-draggable") {
+            console.log("make-not-draggable", data.event.data);
+            console.log("shapes in client state", shapes);
+            const shapeId = data.event.data;
+            // const updatedShapes = shapes.map((shape) =>
+            //   shape.id === shapeId ? { ...shape, draggable: false } : shape
+            // );
+            //setShapes(updatedShapes);
           } else if (data.event.actionType === "make-invisible") {
             const shapeId = data.event.data;
             const updatedShapes = shapes.map((shape) =>
@@ -203,9 +215,11 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
               shape.id === shapeId ? { ...shape, deleted: false } : shape
             );
             setShapes(updatedShapes);
-          } else if (data.event.actionType === "move-to") {
+          } else if (data.event.actionType === "move") {
             const { id, x, y } = JSON.parse(data.event.data);
-            shapes.map((shape) =>
+            console.log("move shape", id, x, y);
+
+            const updatedShapes = shapes.map((shape) =>
               shape.id !== id
                 ? shape
                 : {
@@ -214,6 +228,10 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
                     y: y || 0,
                   }
             );
+            console.log("move shape", id, x, y);
+            console.log("shapes", shapes);
+            console.log("updated shapes", updatedShapes);
+            setShapes(updatedShapes);
           } else if (data.event.actionType === "clear-canvas") {
             setShapes([]);
             setHistory([]);
@@ -290,6 +308,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
       const newShapes = shapes.map((shape) =>
         shape.id !== lastAction.shapeId ? shape : { ...shape, deleted: false }
       );
+
       setShapes(newShapes);
     } else if (lastAction.type === "create") {
       publishEvent("make-invisible", lastAction.shapeId);
@@ -415,6 +434,7 @@ export const CanvasProvider: React.FC<{ children: React.ReactNode }> = ({
     strokeWidth,
     setStrokeWidth,
     isDrawing,
+    isDragging,
     historyIndex,
     setHistoryIndex,
     history,
