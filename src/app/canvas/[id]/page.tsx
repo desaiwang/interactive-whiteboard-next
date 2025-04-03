@@ -3,7 +3,11 @@ import Canvas from "@/components/Canvas";
 import Toolbar from "@/components/Toolbar";
 // import RoomControls from "@/app/components/RoomControls";
 import { CanvasProvider } from "@/app/contexts/CanvasContext";
+import { Shape as ShapeType } from "@/app/contexts/CanvasContextTypes";
+import { getShapesDB } from "@/app/_action/actions";
 import { Toaster } from "sonner";
+import { Shape } from "react-konva";
+import ShapesFetcher from "@/components/ShapesFetcher";
 
 const Index = async ({
   params: rawParams,
@@ -12,12 +16,14 @@ const Index = async ({
 }) => {
   const params = await rawParams;
   if (!params.id) return null;
+
   return (
-    <CanvasProvider>
+    <CanvasProvider canvasId={params.id}>
       <div className="relative h-screen w-screen overflow-hidden">
-        <Toolbar />
+        <ShapesFetcher canvasId={params.id} />
+        {/* <Toolbar /> */}
         {/* <RoomControls /> */}
-        <Canvas canvasId={params.id} />
+        {/* <Canvas canvasId={params.id} /> */}
         <Toaster position="bottom-right" />
       </div>
     </CanvasProvider>
