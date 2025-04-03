@@ -56,7 +56,7 @@ export const Toolbar: React.FC = () => {
     undo,
     redo,
     clearCanvas,
-    saveCanvas,
+    //saveCanvas,
   } = useCanvas();
 
   const tools = [

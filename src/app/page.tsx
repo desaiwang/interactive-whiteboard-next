@@ -1,7 +1,5 @@
 import React from "react";
 import { cookiesClient } from "@/utils/amplify-utils";
-import Post from "@/components/Post";
-import { deleteCanvas } from "./_action/actions";
 import { AuthGetCurrentUserServer } from "@/utils/amplify-utils";
 import CanvasOverviewsFetcher from "@/components/CanvasOverviewsFetcher";
 //import PostList from "@/components/PostList";
