@@ -2,8 +2,10 @@ import React from "react";
 import { cookiesClient } from "@/utils/amplify-utils";
 import { AuthGetCurrentUserServer } from "@/utils/amplify-utils";
 import CanvasOverviewsFetcher from "@/components/CanvasOverviewsFetcher";
-//import PostList from "@/components/PostList";
-// import { Schema } from "@/../amplify/data/resource";
+import { Amplify } from "aws-amplify";
+import outputs from "../../amplify_outputs.json";
+
+Amplify.configure(outputs);
 
 export default async function Home() {
   const user = await AuthGetCurrentUserServer();
