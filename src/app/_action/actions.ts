@@ -4,60 +4,61 @@ import { cookiesClient } from "@/utils/amplify-utils";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { Shape as ShapeType } from "@/app/contexts/CanvasContextTypes";
+import { v4 as uuidv4 } from "uuid";
 
-export async function onDeletePost(id: string) {
-  const { data, errors } = await cookiesClient.models.Post.delete(
+export async function deleteCanvas(id: string) {
+  const { data, errors } = await cookiesClient.models.Canvas.delete(
     { id },
     { authMode: "userPool" }
   );
 
-  console.log("delete post", data, errors);
+  console.log("delete canvas", data, errors);
   revalidatePath("/");
 }
 
-export async function createPost(formData: FormData) {
+export async function createCanvas(formData: FormData) {
   console.log("post formData", formData);
-  const { data, errors } = await cookiesClient.models.Post.create(
+  const newId = uuidv4();
+  const { data, errors } = await cookiesClient.models.Canvas.create(
     {
-      content: formData.get("content")?.toString() || "",
+      id: newId,
+      name: formData.get("name")?.toString() || "unnamed",
     },
     { authMode: "userPool" }
   );
-  console.log("create post", data);
+  console.log("create canvas", data);
   if (errors) {
     console.error("Error creating post", errors);
   }
 
-  redirect("/");
+  redirect(`/canvas/${newId}`);
 }
 
-export async function createComment(content: string, postId: string) {
-  // Validation of data coming in
-  if (content.trim().length === 0) return;
+export async function getCanvasesDB(ownerId: string) {
+  try {
+    //using secondary index for faster operation
+    const { data, errors } = await cookiesClient.models.Canvas.list();
 
-  const { data, errors } = await cookiesClient.models.Comment.create(
-    {
-      content,
-      postId,
-    },
-    { authMode: "userPool" }
-  );
+    //cookiesClient.models.Canvas.listCanvasByOwner({
+    //   owner: ownerId,
+    // });
 
-  console.log("create comment", data);
-  if (errors) {
-    console.error("Error creating comment", errors);
+    if (errors) {
+      console.error("Error getting canvases:", errors);
+      return { success: false, errors };
+    }
+    console.log("Canvas retrieved in getCanvasesDB:", data);
+    const filteredData = data.filter((item) => item.owner === ownerId);
+    console.log("Filtered canvases:", filteredData);
+
+    return {
+      success: true,
+      data: filteredData,
+    };
+  } catch (error) {
+    console.error("Server error:", error);
+    return { success: false, error };
   }
-
-  revalidatePath(`/posts/${postId}`);
-}
-
-export async function deleteComment(id: string) {
-  const { data, errors } = await cookiesClient.models.Comment.delete(
-    { id },
-    { authMode: "userPool" }
-  );
-
-  console.log("delete comment", data, errors);
 }
 
 export async function createShapeDB(shape: ShapeType) {

@@ -41,7 +41,7 @@ export default function NavBar({ isSignedIn }: { isSignedIn: boolean }) {
 
   const defaultRoutes = [
     { href: "/", label: "Home" },
-    { href: "/add", label: "My Canvases", loggedIn: true },
+    { href: "/add", label: "New Canvas", loggedIn: true },
   ];
 
   const routes = defaultRoutes.filter(
@@ -50,9 +50,9 @@ export default function NavBar({ isSignedIn }: { isSignedIn: boolean }) {
   );
   return (
     <div className="flex flex-row justify-between align-center p-8">
-      <div className="flex flex-row gap-4">
+      <div className="flex flex-row gap-4 ">
         {routes.map((route) => (
-          <Link key={route.href} href={route.href}>
+          <Link className="hover:underline" key={route.href} href={route.href}>
             {route.label}
           </Link>
         ))}
@@ -64,7 +64,7 @@ export default function NavBar({ isSignedIn }: { isSignedIn: boolean }) {
         className="mr-4"
         onClick={signOutSignIn}
       >
-        {isAuthenticated ? "Sign Out" : "Sign In To Save Canvas"}
+        {isAuthenticated ? "Sign Out" : "Sign In To Create Canvas"}
       </Button>
     </div>
   );

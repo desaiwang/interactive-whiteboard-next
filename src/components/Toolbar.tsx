@@ -30,7 +30,7 @@ import {
   Eraser,
   Undo2,
   Redo2,
-  Save,
+  //Save,
   Trash2,
 } from "lucide-react";
 
@@ -180,7 +180,7 @@ export const Toolbar: React.FC = () => {
           </Tooltip>
         </TooltipProvider>
 
-        <TooltipProvider>
+        {/* <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -196,7 +196,7 @@ export const Toolbar: React.FC = () => {
               <p>Save Canvas</p>
             </TooltipContent>
           </Tooltip>
-        </TooltipProvider>
+        </TooltipProvider> */}
 
         <AlertDialog>
           <TooltipProvider>
