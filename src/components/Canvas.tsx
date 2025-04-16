@@ -21,27 +21,11 @@ import {
   ActionType,
 } from "@/app/contexts/CanvasContextTypes";
 import { v4 as uuidv4 } from "uuid";
-import { Amplify } from "aws-amplify";
 import {
   createShapeDB,
   updateShapeDB,
   deleteShapeDB,
 } from "@/app/_action/actions";
-
-import outputs from "../../amplify_outputs.json";
-
-Amplify.configure(outputs);
-// Amplify.configure({
-//   API: {
-//     Events: {
-//       endpoint:
-//         "https://ll5c243i7rcnbiycgzfil25yqq.appsync-api.us-east-1.amazonaws.com/event",
-//       region: "us-east-1",
-//       defaultAuthMode: "apiKey",
-//       apiKey: "da2-zbsn7rzsq5hxlkqjdvp7pt7tq4",
-//     },
-//   },
-// });
 
 const Canvas: React.FC<{ canvasId: string }> = ({ canvasId }) => {
   const stageRef = useRef<Konva.Stage | null>(null);

@@ -8,19 +8,6 @@ import { Shape as ShapeType } from "@/app/contexts/CanvasContextTypes";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import Toolbar from "@/components/Toolbar";
 
-// import { Amplify } from "aws-amplify";
-// Amplify.configure({
-//   API: {
-//     Events: {
-//       endpoint:
-//         "https://ll5c243i7rcnbiycgzfil25yqq.appsync-api.us-east-1.amazonaws.com/event",
-//       region: "us-east-1",
-//       defaultAuthMode: "apiKey",
-//       apiKey: "da2-zbsn7rzsq5hxlkqjdvp7pt7tq4",
-//     },
-//   },
-// });
-
 /**
  * `ShapesFetcher` fetches shapes data for the canvas. It displays a loading overlay while data is fetching.
  */
