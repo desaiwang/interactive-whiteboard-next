@@ -1,4 +1,7 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+An interactive whiteboard that supports real-time collaboration, with user-authentication and multiple canvases.
+
+![250404_WhiteboardDemo](https://github.com/user-attachments/assets/564dd6ba-e05b-4c34-b77c-8a589c993837)
+
 
 ## To host locally
 
