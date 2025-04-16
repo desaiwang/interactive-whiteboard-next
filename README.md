@@ -1,7 +1,8 @@
-An interactive whiteboard that supports real-time collaboration, with user-authentication and multiple canvases.
+An interactive whiteboard that supports real-time collaboration, with user-authentication and multiple canvases. You can play with the live site [here](https://master.d29bkwcd0kv1kn.amplifyapp.com/).
 
-![250404_WhiteboardDemo](https://github.com/user-attachments/assets/564dd6ba-e05b-4c34-b77c-8a589c993837)
-
+<div align="center">
+<img src="https://github.com/user-attachments/assets/564dd6ba-e05b-4c34-b77c-8a589c993837" alt="250404_WhiteboardDemo" width="80%" style="margin:auto" />
+</div>
 
 ## To host locally
 
