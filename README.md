@@ -20,17 +20,17 @@ bun dev
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 ## Architecture
-The app is created with Next.js/Typescript and hosted through Amplify. It stores data in a DynamoDB database and communicates between users through AppSync Events (web socket). User authentication is managed with Cognito.
+The app is created with Next.js/Typescript and hosted through Amplify. The front end makes use of Konva.js for shape drawing and manipulation. Canvases and objects are stored in a DynamoDB database and realtime updates are done through AppSync Events (web socket). User authentication is managed with Cognito.
 
 Database
 
-- two managed database, one for canvases and another for shapes
+- two NoSql database, one for canvases and another for shapes
 - shapes have a secondary index on canvasId for quick indexing (get all shapes for one canvas)
 
 Web sockets
 
 - Follows architecture outlined in [Amplify documentation](https://docs.amplify.aws/nextjs/build-a-backend/data/connect-event-api/).
-- Creates a subchannel `default/<canvasId>`  distribute events by canvas
+- Creates a subchannel `default/<canvasId>` to distribute events by canvas
 
 User Authentication
 
